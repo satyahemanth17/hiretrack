@@ -19,7 +19,7 @@ GITHUB_REDIRECT_URI: str = os.getenv(
     "GITHUB_REDIRECT_URI", "http://localhost:8000/auth/github/callback"
 )
 
-_bearer = HTTPBearer()
+_bearer = HTTPBearer(auto_error=False)
 
 
 def create_access_token(data: dict) -> str:
@@ -42,8 +42,13 @@ def decode_token(token: str) -> dict:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> dict:
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authenticated",
+        )
     return decode_token(credentials.credentials)
 
 

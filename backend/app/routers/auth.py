@@ -1,33 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from ..auth import (
     GITHUB_CLIENT_ID,
     GITHUB_REDIRECT_URI,
     create_access_token,
-    decode_token,
     exchange_github_code,
+    get_current_user,
 )
 from ..limiter import limiter
 from ..schemas import TokenResponse, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-# HTTPBearer with auto_error=False so we can raise 403 (not 401) when the
-# Authorization header is absent — matching the OpenAPI security convention.
-_bearer = HTTPBearer(auto_error=False)
-
-
-async def _get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
-) -> dict:
-    if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authenticated",
-        )
-    return decode_token(credentials.credentials)
 
 
 @router.get("/github", include_in_schema=True)
@@ -58,7 +42,7 @@ async def github_callback(request: Request, code: str) -> TokenResponse:
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_me(current_user: dict = Depends(_get_current_user)) -> UserResponse:
+async def get_me(current_user: dict = Depends(get_current_user)) -> UserResponse:
     return UserResponse(
         id=int(current_user["sub"]),
         login=current_user["login"],
