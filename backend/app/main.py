@@ -7,6 +7,7 @@ from .limiter import limiter
 from .routers import analytics as analytics_router
 from .routers import auth as auth_router
 from .routers import applications as applications_router
+from .routers import matcher as matcher_router
 
 app = FastAPI(
     title="HireTrack API",
@@ -28,6 +29,7 @@ app.add_middleware(
 app.include_router(auth_router.router)
 app.include_router(applications_router.router)
 app.include_router(analytics_router.router)
+app.include_router(matcher_router.router)
 
 
 @app.get("/health", tags=["health"])
