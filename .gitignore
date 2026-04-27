@@ -8,3 +8,13 @@ dist/
 .gitnexus
 venv/
 *.db
+CLAUDE.md
+DESIGN.md
+AGENTS.md
+.gitnexus/
+.claude/
+CLAUDE.md
+DESIGN.md
+AGENTS.md
+.gitnexus/
+.claude/
