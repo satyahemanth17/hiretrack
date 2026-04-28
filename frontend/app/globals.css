@@ -1,0 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  --primary: #5E6AD2;
+  --primary-hover: #4F5BBF;
+  --surface: #F7F8FA;
+  --card-bg: #FFFFFF;
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B7280;
+  --border: #E5E7EB;
+}
+
+html {
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+}
+
+body {
+  background-color: var(--surface);
+  color: var(--text-primary);
+}
