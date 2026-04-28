@@ -26,9 +26,9 @@ async def github_login(request: Request) -> RedirectResponse:
     return RedirectResponse(url=url)
 
 
-@router.get("/github/callback", response_model=TokenResponse)
+@router.get("/github/callback")
 @limiter.limit("10/15minutes")
-async def github_callback(request: Request, code: str) -> TokenResponse:
+async def github_callback(request: Request, code: str) -> RedirectResponse:
     github_user = await exchange_github_code(code)
     token = create_access_token(
         {
@@ -38,7 +38,7 @@ async def github_callback(request: Request, code: str) -> TokenResponse:
             "avatar_url": github_user.get("avatar_url"),
         }
     )
-    return TokenResponse(access_token=token)
+    return RedirectResponse(url=f"http://localhost:3000/dashboard?token={token}")
 
 
 @router.get("/me", response_model=UserResponse)
