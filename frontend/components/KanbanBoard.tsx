@@ -80,7 +80,7 @@ export default function KanbanBoard() {
 
   const load = useCallback(async () => {
     const data = await listApplications();
-    setApps(data);
+    setApps(Array.isArray(data) ? data : []);
   }, []);
 
   useEffect(() => { load(); }, [load]);
