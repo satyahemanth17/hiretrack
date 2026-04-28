@@ -17,6 +17,6 @@ html {
 }
 
 body {
-  background-color: #191919;
-  color: #ffffffcf;
+  background-color: var(--surface);
+  color: var(--text-primary);
 }

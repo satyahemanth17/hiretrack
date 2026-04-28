@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import KanbanBoard from '@/components/KanbanBoard';
 import AnalyticsChart from '@/components/AnalyticsChart';
@@ -13,12 +13,25 @@ export default function DashboardPage() {
   const [checking, setChecking] = useState(true);
   const [apps, setApps] = useState<Application[]>([]);
 
-  async function load() {
-    const result = await listApplications();
-    if (Array.isArray(result)) {
-      setApps(result);
+  const load = useCallback(async () => {
+    try {
+      const result = await listApplications();
+      setApps(Array.isArray(result) ? result : []);
+    } catch (err) {
+      console.error('Failed to load applications:', err);
     }
+  }, []);
+
+  function logout() {
+    localStorage.removeItem('token');
+    router.push('/');
   }
+
+  const tabs: { key: 'board' | 'table' | 'analytics'; label: string }[] = [
+    { key: 'board', label: 'Application Status Board' },
+    { key: 'table', label: 'All Applications' },
+    { key: 'analytics', label: 'Analytics' },
+  ];
 
   useEffect(() => {
     // Read token from URL if present (after GitHub OAuth redirect)
@@ -37,20 +50,9 @@ export default function DashboardPage() {
       setChecking(false);
       load();
     }
-  }, [router]);
+  }, [router, load]);
 
   if (checking) return null;
-
-  function logout() {
-    localStorage.removeItem('token');
-    router.push('/');
-  }
-
-  const tabs: { key: 'board' | 'table' | 'analytics'; label: string }[] = [
-    { key: 'board', label: 'Application Status Board' },
-    { key: 'table', label: 'All Applications' },
-    { key: 'analytics', label: 'Analytics' },
-  ];
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#191919', position: 'relative' }}>

@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+const BFF_URL = process.env.NEXT_PUBLIC_BFF_URL ?? 'http://localhost:4000';
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -44,7 +46,7 @@ export default function LoginPage() {
           Track your job applications, effortlessly.
         </p>
         <a
-          href="http://localhost:4000/api/auth/github"
+          href={`${BFF_URL}/api/auth/github`}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
