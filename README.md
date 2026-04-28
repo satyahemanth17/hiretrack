@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/satyahemanth17/hiretrack/actions/workflows/ci.yml/badge.svg)](https://github.com/satyahemanth17/hiretrack/actions/workflows/ci.yml)
 
-A full-stack job application tracker built as a portfolio project.
+A full-stack job application tracker for software engineers.
 
 ## Architecture
 
