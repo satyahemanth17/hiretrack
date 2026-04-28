@@ -17,13 +17,14 @@ const STATUS_LABELS: Record<Status, string> = {
   withdrawn: "Withdrawn",
 };
 
-const STATUS_COLORS: Record<Status, { bg: string; text: string }> = {
-  applied: { bg: "#EFF6FF", text: "#2563EB" },
-  phone_screen: { bg: "#F5F3FF", text: "#7C3AED" },
-  interview: { bg: "#FFF7ED", text: "#C2410C" },
-  offer: { bg: "#F0FDF4", text: "#15803D" },
-  rejected: { bg: "#FEF2F2", text: "#DC2626" },
-  withdrawn: { bg: "#F9FAFB", text: "#6B7280" },
+// Dark theme status dot / title colors
+const STATUS_DOT_COLORS: Record<Status, string> = {
+  applied: "#0a7cff",
+  phone_screen: "#d9a21b",
+  interview: "#7c51bb",
+  offer: "#2e7d32",
+  rejected: "#b71c1c",
+  withdrawn: "#454545",
 };
 
 function Card({ app }: { app: Application }) {
@@ -31,44 +32,92 @@ function Card({ app }: { app: Application }) {
   const style = transform
     ? { transform: `translate(${transform.x}px,${transform.y}px)`, opacity: isDragging ? 0.5 : 1 }
     : undefined;
-  const colors = STATUS_COLORS[app.status as Status] ?? { bg: "#F9FAFB", text: "#6B7280" };
 
   return (
     <div
       ref={setNodeRef}
-      style={{ ...style, backgroundColor: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "6px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", cursor: "grab" }}
-      className="p-3 mb-2 select-none"
+      style={{
+        ...style,
+        backgroundColor: "#1e1e1e",
+        border: "1px solid #2e2e2e",
+        borderRadius: "6px",
+        cursor: "grab",
+        padding: "10px 12px",
+        marginBottom: "8px",
+      }}
+      className="select-none"
       {...listeners}
       {...attributes}
     >
-      <p className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>{app.company}</p>
-      <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>{app.role}</p>
-      <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>{app.applied_date}</p>
-      <span className="inline-block mt-2 px-2 py-0.5 text-xs rounded-full" style={{ backgroundColor: colors.bg, color: colors.text, borderRadius: "9999px" }}>
-        {STATUS_LABELS[app.status as Status] ?? app.status}
-      </span>
+      <p style={{ color: "#ffffffcf", fontWeight: 600, fontSize: "13px", margin: 0 }}>{app.company}</p>
+      <p style={{ color: "#787878", fontSize: "13px", marginTop: "2px", marginBottom: 0 }}>{app.role}</p>
+      <p style={{ color: "#787878", fontSize: "12px", marginTop: "4px", marginBottom: 0 }}>{app.applied_date}</p>
     </div>
   );
 }
 
 function Column({ status, cards, onAdd }: { status: Status; cards: Application[]; onAdd: (s: Status) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+  const dotColor = STATUS_DOT_COLORS[status];
+
   return (
     <div
       ref={setNodeRef}
-      style={{ minWidth: "220px", backgroundColor: isOver ? "#EFF6FF" : "var(--surface)", border: "1px solid var(--border)", borderRadius: "6px", padding: "12px", transition: "background-color 0.15s" }}
+      style={{
+        minWidth: "220px",
+        backgroundColor: isOver ? "#2a2a2a" : "#252525",
+        border: "1px solid #2e2e2e",
+        borderRadius: "6px",
+        padding: "12px",
+        transition: "background-color 0.15s",
+      }}
     >
       <div className="flex items-center justify-between mb-3">
-        <span className="font-medium text-sm" style={{ color: "var(--text-primary)" }}>{STATUS_LABELS[status]}</span>
-        <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--border)", color: "var(--text-secondary)", borderRadius: "9999px" }}>{cards.length}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              backgroundColor: dotColor,
+              flexShrink: 0,
+              display: "inline-block",
+            }}
+          />
+          <span style={{ fontWeight: 500, fontSize: "13px", color: dotColor }}>
+            {STATUS_LABELS[status]}
+          </span>
+        </div>
+        <span
+          style={{
+            fontSize: "11px",
+            padding: "1px 7px",
+            borderRadius: "9999px",
+            backgroundColor: "#2e2e2e",
+            color: "#787878",
+          }}
+        >
+          {cards.length}
+        </span>
       </div>
+
       {cards.map((c) => <Card key={c.id} app={c} />)}
+
       <button
         onClick={() => onAdd(status)}
-        className="w-full text-xs mt-1 py-1 rounded"
-        style={{ color: "var(--text-secondary)", border: "1px dashed var(--border)" }}
+        style={{
+          width: "100%",
+          fontSize: "12px",
+          marginTop: "4px",
+          padding: "5px 0",
+          borderRadius: "4px",
+          color: "#787878",
+          border: "1px dashed #2e2e2e",
+          backgroundColor: "transparent",
+          cursor: "pointer",
+        }}
       >
-        + Add
+        + New item
       </button>
     </div>
   );
@@ -113,7 +162,7 @@ export default function KanbanBoard() {
       <button
         onClick={() => setModalStatus("applied")}
         className="fixed bottom-8 right-8 w-12 h-12 rounded-full text-white text-2xl flex items-center justify-center shadow-lg"
-        style={{ backgroundColor: "var(--primary)" }}
+        style={{ backgroundColor: "#0a7cff" }}
         title="Add application"
       >
         +
