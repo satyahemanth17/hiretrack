@@ -76,6 +76,58 @@ function sortApps(list: Application[], key: SortKey, dir: SortDir): Application[
   });
 }
 
+// ── Shared table styles ────────────────────────────────────────────────────────
+const thStyle: React.CSSProperties = {
+  color: TEXT_SECONDARY,
+  fontSize: "12px",
+  fontWeight: 500,
+  textTransform: "uppercase",
+  letterSpacing: "0.04em",
+  padding: "8px 12px",
+  textAlign: "left",
+  whiteSpace: "nowrap",
+  cursor: "pointer",
+  userSelect: "none",
+  borderBottom: `1px solid ${BORDER}`,
+  backgroundColor: BG,
+};
+
+const tdStyle: React.CSSProperties = {
+  padding: "10px 12px",
+  color: TEXT_PRIMARY,
+  fontSize: "13px",
+  whiteSpace: "nowrap",
+  borderBottom: `1px solid ${BORDER}`,
+  verticalAlign: "middle",
+};
+
+// ── Sub-components at module scope (avoids remounting on every render) ─────────
+function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey | null; sortDir: "asc" | "desc" }) {
+  if (sortKey !== col) return <span style={{ marginLeft: 4, opacity: 0.3 }}>↕</span>;
+  return <span style={{ marginLeft: 4 }}>{sortDir === "asc" ? "▲" : "▼"}</span>;
+}
+
+function Th({
+  col,
+  label,
+  sortKey,
+  sortDir,
+  onSort,
+}: {
+  col: SortKey;
+  label: string;
+  sortKey: SortKey | null;
+  sortDir: "asc" | "desc";
+  onSort: (col: SortKey) => void;
+}) {
+  return (
+    <th style={thStyle} onClick={() => onSort(col)}>
+      {label}
+      <SortIcon col={col} sortKey={sortKey} sortDir={sortDir} />
+    </th>
+  );
+}
+
 // ── Component ──────────────────────────────────────────────────────────────────
 export default function ApplicationsTable({ apps, onRefresh }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("applied_date");
@@ -91,44 +143,6 @@ export default function ApplicationsTable({ apps, onRefresh }: Props) {
   }
 
   const sorted = sortApps(apps, sortKey, sortDir);
-
-  const thStyle: React.CSSProperties = {
-    color: TEXT_SECONDARY,
-    fontSize: "12px",
-    fontWeight: 500,
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-    padding: "8px 12px",
-    textAlign: "left",
-    whiteSpace: "nowrap",
-    cursor: "pointer",
-    userSelect: "none",
-    borderBottom: `1px solid ${BORDER}`,
-    backgroundColor: BG,
-  };
-
-  const tdStyle: React.CSSProperties = {
-    padding: "10px 12px",
-    color: TEXT_PRIMARY,
-    fontSize: "13px",
-    whiteSpace: "nowrap",
-    borderBottom: `1px solid ${BORDER}`,
-    verticalAlign: "middle",
-  };
-
-  function SortIcon({ col }: { col: SortKey }) {
-    if (sortKey !== col) return <span style={{ marginLeft: 4, opacity: 0.3 }}>↕</span>;
-    return <span style={{ marginLeft: 4 }}>{sortDir === "asc" ? "▲" : "▼"}</span>;
-  }
-
-  function Th({ col, label }: { col: SortKey; label: string }) {
-    return (
-      <th style={thStyle} onClick={() => handleSort(col)}>
-        {label}
-        <SortIcon col={col} />
-      </th>
-    );
-  }
 
   return (
     <div style={{ overflowX: "auto", backgroundColor: BG, borderRadius: "6px", border: `1px solid ${BORDER}` }}>
@@ -151,23 +165,21 @@ export default function ApplicationsTable({ apps, onRefresh }: Props) {
       <table style={{ width: "100%", borderCollapse: "collapse", backgroundColor: BG }}>
         <thead>
           <tr>
-            <Th col="company" label="Company" />
-            <Th col="role" label="Role / Position" />
-            <Th col="location" label="Location" />
-            <Th col="applied_date" label="Applied Date" />
-            <Th col="status" label="Status" />
+            <Th col="company" label="Company" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <Th col="role" label="Role / Position" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <Th col="location" label="Location" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <Th col="applied_date" label="Applied Date" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <Th col="status" label="Status" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <th style={{ ...thStyle, cursor: "default" }}>Link / Portal</th>
-            <th style={{ ...thStyle, cursor: "default" }}>Contact</th>
-            <th style={{ ...thStyle, cursor: "default" }}>Email / Phone</th>
-            <Th col="follow_up_date" label="Deadline" />
-            <Th col="resume_used" label="Resume Used" />
+            <Th col="follow_up_date" label="Deadline" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <Th col="resume_used" label="Resume Used" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <th style={{ ...thStyle, cursor: "default" }}>Cover Letter</th>
           </tr>
         </thead>
         <tbody>
           {sorted.length === 0 && (
             <tr>
-              <td colSpan={11} style={{ ...tdStyle, textAlign: "center", color: TEXT_SECONDARY, padding: "32px" }}>
+              <td colSpan={9} style={{ ...tdStyle, textAlign: "center", color: TEXT_SECONDARY, padding: "32px" }}>
                 No applications yet.
               </td>
             </tr>
@@ -261,12 +273,6 @@ export default function ApplicationsTable({ apps, onRefresh }: Props) {
                     <span style={{ color: TEXT_SECONDARY }}>—</span>
                   )}
                 </td>
-
-                {/* Contact */}
-                <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>—</td>
-
-                {/* Email / Phone */}
-                <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>—</td>
 
                 {/* Deadline */}
                 <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>{fmtDate(app.follow_up_date)}</td>

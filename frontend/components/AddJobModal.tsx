@@ -36,7 +36,7 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
   });
   const [error, setError] = useState("");
 
-  function set(field: string, value: string | boolean) {
+  function set(field: keyof typeof form, value: string | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
