@@ -35,6 +35,8 @@ export interface Application {
   salary_max?: number;
   follow_up_date?: string;
   notes?: string;
+  resume_used?: string;
+  cover_letter_used?: boolean;
 }
 
 export interface FunnelItem { status: string; count: number; }
