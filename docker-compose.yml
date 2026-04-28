@@ -3,15 +3,19 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: hiretrack
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    restart: unless-stopped
     networks:
       - hiretrack-network
 
@@ -20,7 +24,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://postgres:password@db:5432/hiretrack
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@db:5432/hiretrack
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
@@ -33,6 +37,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    restart: unless-stopped
     networks:
       - hiretrack-network
 
@@ -51,19 +57,27 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    restart: unless-stopped
     networks:
       - hiretrack-network
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_BFF_URL: http://localhost:4000
     ports:
       - "3000:3000"
-    environment:
-      NEXT_PUBLIC_BFF_URL: http://localhost:4000
     depends_on:
-      - bff
+      bff:
+        condition: service_healthy
+    restart: unless-stopped
     networks:
       - hiretrack-network
+
+volumes:
+  postgres_data:
 
 networks:
   hiretrack-network:
