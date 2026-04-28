@@ -88,9 +88,15 @@ export default function KanbanBoard() {
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const newStatus = over.id as Status;
+    const newStatus = over.id as string;
+    if (!STATUSES.includes(newStatus as Status)) return;
+    const prevApps = apps;
     setApps((prev) => prev.map((a) => a.id === active.id ? { ...a, status: newStatus } : a));
-    await updateApplication(active.id as string, { status: newStatus });
+    try {
+      await updateApplication(active.id as string, { status: newStatus });
+    } catch {
+      setApps(prevApps);
+    }
   }
 
   const byStatus = (s: Status) => apps.filter((a) => a.status === s);

@@ -1,17 +1,22 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import KeywordMatcher from "@/components/KeywordMatcher";
 
 export default function MatcherPage() {
   const router = useRouter();
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && !localStorage.getItem("token")) {
+    if (!localStorage.getItem("token")) {
       router.push("/");
+    } else {
+      setChecking(false);
     }
   }, [router]);
+
+  if (checking) return null;
 
   function logout() {
     localStorage.removeItem("token");

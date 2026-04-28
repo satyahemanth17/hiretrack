@@ -20,7 +20,7 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
   });
   const [error, setError] = useState("");
 
-  function set(field: string, value: string) {
+  function set(field: keyof typeof form, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -30,19 +30,23 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
       setError("Company, Role, and Applied Date are required.");
       return;
     }
-    await createApplication({
-      company: form.company,
-      role: form.role,
-      status: form.status,
-      applied_date: form.applied_date,
-      location: form.location || undefined,
-      job_url: form.job_url || undefined,
-      salary_min: form.salary_min ? Number(form.salary_min) : undefined,
-      salary_max: form.salary_max ? Number(form.salary_max) : undefined,
-      follow_up_date: form.follow_up_date || undefined,
-      notes: form.notes || undefined,
-    });
-    onSaved();
+    try {
+      await createApplication({
+        company: form.company,
+        role: form.role,
+        status: form.status,
+        applied_date: form.applied_date,
+        location: form.location || undefined,
+        job_url: form.job_url || undefined,
+        salary_min: form.salary_min ? Number(form.salary_min) : undefined,
+        salary_max: form.salary_max ? Number(form.salary_max) : undefined,
+        follow_up_date: form.follow_up_date || undefined,
+        notes: form.notes || undefined,
+      });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save. Please try again.");
+    }
   }
 
   const inputStyle = { width: "100%", padding: "6px 10px", borderRadius: "4px", border: "1px solid var(--border)", fontSize: "14px", outline: "none" };

@@ -8,12 +8,17 @@ import AnalyticsChart from "@/components/AnalyticsChart";
 export default function DashboardPage() {
   const router = useRouter();
   const [tab, setTab] = useState<"board" | "analytics">("board");
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && !localStorage.getItem("token")) {
+    if (!localStorage.getItem("token")) {
       router.push("/");
+    } else {
+      setChecking(false);
     }
   }, [router]);
+
+  if (checking) return null;
 
   function logout() {
     localStorage.removeItem("token");

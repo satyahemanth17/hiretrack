@@ -7,13 +7,24 @@ import { getFunnel, getTimeline, FunnelItem, TimelineItem } from "@/lib/api";
 export default function AnalyticsChart() {
   const [funnel, setFunnel] = useState<FunnelItem[]>([]);
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
-    getFunnel().then(setFunnel).catch(() => {});
-    getTimeline().then(setTimeline).catch(() => {});
+    Promise.all([
+      getFunnel().then(setFunnel),
+      getTimeline().then(setTimeline),
+    ]).catch(() => setFetchError(true));
   }, []);
 
   const cardStyle = { backgroundColor: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "6px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", padding: "20px", marginBottom: "20px" };
+
+  if (fetchError) {
+    return (
+      <div className="text-center py-16" style={{ color: "#DC2626" }}>
+        <p>Failed to load analytics. Please try again.</p>
+      </div>
+    );
+  }
 
   if (!funnel.length && !timeline.length) {
     return (
