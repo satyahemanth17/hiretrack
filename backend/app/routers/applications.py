@@ -132,7 +132,12 @@ async def upload_resume(
         raise HTTPException(status_code=404, detail="Application not found")
 
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    safe_name = f"{app_id}_resume_{file.filename}"
+    original_name = os.path.basename(file.filename or "upload")
+    _, ext = os.path.splitext(original_name)
+    allowed_ext = {".pdf", ".doc", ".docx", ".txt"}
+    if ext.lower() not in allowed_ext:
+        raise HTTPException(status_code=400, detail=f"File type '{ext}' not allowed. Use PDF, DOC, DOCX, or TXT.")
+    safe_name = f"{app_id}_resume_{uuid.uuid4().hex}{ext}"
     dest = os.path.join(UPLOAD_DIR, safe_name)
     with open(dest, "wb") as f:
         shutil.copyfileobj(file.file, f)
@@ -158,7 +163,12 @@ async def upload_cover_letter(
         raise HTTPException(status_code=404, detail="Application not found")
 
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    safe_name = f"{app_id}_coverletter_{file.filename}"
+    original_name = os.path.basename(file.filename or "upload")
+    _, ext = os.path.splitext(original_name)
+    allowed_ext = {".pdf", ".doc", ".docx", ".txt"}
+    if ext.lower() not in allowed_ext:
+        raise HTTPException(status_code=400, detail=f"File type '{ext}' not allowed. Use PDF, DOC, DOCX, or TXT.")
+    safe_name = f"{app_id}_coverletter_{uuid.uuid4().hex}{ext}"
     dest = os.path.join(UPLOAD_DIR, safe_name)
     with open(dest, "wb") as f:
         shutil.copyfileobj(file.file, f)
