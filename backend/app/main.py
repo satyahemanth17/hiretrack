@@ -12,7 +12,7 @@ from .routers import auth as auth_router
 from .routers import applications as applications_router
 from .routers import matcher as matcher_router
 
-UPLOAD_DIR = "/app/uploads"
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "./uploads")
 
 app = FastAPI(
     title="HireTrack API",
