@@ -20,6 +20,8 @@ class ApplicationCreate(BaseModel):
     follow_up_date: Optional[date] = None
     resume_used: Optional[str] = None
     cover_letter_used: Optional[bool] = None
+    resume_file_path: Optional[str] = None
+    cover_letter_file_path: Optional[str] = None
 
 
 class ApplicationUpdate(BaseModel):
@@ -36,6 +38,8 @@ class ApplicationUpdate(BaseModel):
     follow_up_date: Optional[date] = None
     resume_used: Optional[str] = None
     cover_letter_used: Optional[bool] = None
+    resume_file_path: Optional[str] = None
+    cover_letter_file_path: Optional[str] = None
 
 
 class ApplicationResponse(BaseModel):
@@ -54,6 +58,8 @@ class ApplicationResponse(BaseModel):
     follow_up_date: Optional[date]
     resume_used: Optional[str]
     cover_letter_used: Optional[bool]
+    resume_file_path: Optional[str]
+    cover_letter_file_path: Optional[str]
     created_at: datetime
     updated_at: datetime
 

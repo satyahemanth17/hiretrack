@@ -1,5 +1,8 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -8,6 +11,8 @@ from .routers import analytics as analytics_router
 from .routers import auth as auth_router
 from .routers import applications as applications_router
 from .routers import matcher as matcher_router
+
+UPLOAD_DIR = "/app/uploads"
 
 app = FastAPI(
     title="HireTrack API",
@@ -30,6 +35,9 @@ app.include_router(auth_router.router)
 app.include_router(applications_router.router)
 app.include_router(analytics_router.router)
 app.include_router(matcher_router.router)
+
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 
 @app.get("/health", tags=["health"])
