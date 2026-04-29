@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import KanbanBoard from '@/components/KanbanBoard';
 import AnalyticsChart from '@/components/AnalyticsChart';
 import ApplicationsTable from '@/components/ApplicationsTable';
+import DeadlinesCalendar from '@/components/DeadlinesCalendar';
+import AddJobModal from '@/components/AddJobModal';
 import { listApplications, Application } from '@/lib/api';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<'board' | 'table' | 'analytics'>('table');
+  const [tab, setTab] = useState<'board' | 'table' | 'calendar' | 'analytics'>('table');
   const [checking, setChecking] = useState(true);
   const [apps, setApps] = useState<Application[]>([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -28,9 +30,10 @@ export default function DashboardPage() {
     router.push('/');
   }
 
-  const tabs: { key: 'board' | 'table' | 'analytics'; label: string }[] = [
+  const tabs: { key: 'board' | 'table' | 'calendar' | 'analytics'; label: string }[] = [
     { key: 'board', label: 'Application Status Board' },
     { key: 'table', label: 'All Applications' },
+    { key: 'calendar', label: 'Deadlines Calendar' },
     { key: 'analytics', label: 'Analytics' },
   ];
 
@@ -124,8 +127,17 @@ export default function DashboardPage() {
       <div style={{ padding: '24px 32px' }}>
         {tab === 'board' && <KanbanBoard />}
         {tab === 'table' && <ApplicationsTable apps={apps} onRefresh={load} onAdd={() => setShowAdd(true)} />}
+        {tab === 'calendar' && <DeadlinesCalendar apps={apps} />}
         {tab === 'analytics' && <AnalyticsChart />}
       </div>
+
+      {showAdd && (
+        <AddJobModal
+          initialStatus="applied"
+          onClose={() => setShowAdd(false)}
+          onSaved={() => { setShowAdd(false); load(); }}
+        />
+      )}
     </div>
   );
 }
