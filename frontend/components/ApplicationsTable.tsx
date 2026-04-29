@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Application } from "@/lib/api";
+import { useState, useRef } from "react";
+import { Application, updateApplication } from "@/lib/api";
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
 const BG = "#191919";
@@ -29,6 +29,8 @@ const STATUS_LABELS: Record<string, string> = {
   withdrawn: "Withdrawn",
 };
 
+const STATUS_OPTIONS = ["applied", "phone_screen", "interview", "offer", "rejected", "withdrawn"] as const;
+
 // ── Company avatar palette (6 Notion-ish colors) ───────────────────────────────
 const AVATAR_PALETTE = ["#0a7cff", "#7c51bb", "#d9a21b", "#2e7d32", "#b71c1c", "#078d7c"];
 
@@ -51,13 +53,17 @@ function fmtDate(raw?: string): string {
 }
 
 // ── Sort types ─────────────────────────────────────────────────────────────────
-type SortKey = "company" | "role" | "location" | "applied_date" | "status" | "follow_up_date" | "resume_used";
+type SortKey = "company" | "role" | "location" | "applied_date" | "status" | "follow_up_date";
 type SortDir = "asc" | "desc";
+
+// ── Editable fields ────────────────────────────────────────────────────────────
+type EditableField = "company" | "role" | "location" | "status";
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 interface Props {
   apps: Application[];
   onRefresh: () => void;
+  onAdd: () => void;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -81,7 +87,6 @@ const thStyle: React.CSSProperties = {
   color: TEXT_SECONDARY,
   fontSize: "12px",
   fontWeight: 500,
-  textTransform: "uppercase",
   letterSpacing: "0.04em",
   padding: "8px 12px",
   textAlign: "left",
@@ -99,6 +104,17 @@ const tdStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
   borderBottom: `1px solid ${BORDER}`,
   verticalAlign: "middle",
+};
+
+const inlineInputStyle: React.CSSProperties = {
+  backgroundColor: "#1e1e1e",
+  border: "1px solid #0a7cff",
+  color: "#ffffffcf",
+  fontSize: "13px",
+  padding: "2px 6px",
+  borderRadius: "3px",
+  width: "100%",
+  outline: "none",
 };
 
 // ── Sub-components at module scope (avoids remounting on every render) ─────────
@@ -129,9 +145,15 @@ function Th({
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
-export default function ApplicationsTable({ apps, onRefresh }: Props) {
+export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("applied_date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [editCell, setEditCell] = useState<{ id: string; field: EditableField } | null>(null);
+  const [editValue, setEditValue] = useState<string>("");
+  const [expandedNotes, setExpandedNotes] = useState<string | null>(null);
+
+  // Track input value via ref to avoid stale closure on blur
+  const editValueRef = useRef<string>("");
 
   function handleSort(key: SortKey) {
     if (key === sortKey) {
@@ -140,6 +162,31 @@ export default function ApplicationsTable({ apps, onRefresh }: Props) {
       setSortKey(key);
       setSortDir("asc");
     }
+  }
+
+  function startEdit(id: string, field: EditableField, currentValue: string) {
+    setEditCell({ id, field });
+    setEditValue(currentValue);
+    editValueRef.current = currentValue;
+  }
+
+  async function commitEdit(id: string, field: EditableField) {
+    const val = editValueRef.current;
+    setEditCell(null);
+    try {
+      await updateApplication(id, { [field]: val });
+      onRefresh();
+    } catch {
+      // silently ignore — table will revert on next refresh
+    }
+  }
+
+  function cancelEdit() {
+    setEditCell(null);
+  }
+
+  function toggleNotes(id: string) {
+    setExpandedNotes((prev) => (prev === id ? null : id));
   }
 
   const sorted = sortApps(apps, sortKey, sortDir);
@@ -165,21 +212,22 @@ export default function ApplicationsTable({ apps, onRefresh }: Props) {
       <table style={{ width: "100%", borderCollapse: "collapse", backgroundColor: BG }}>
         <thead>
           <tr>
-            <Th col="company" label="Company" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <Th col="company" label="Company Name" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <Th col="role" label="Role / Position" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <Th col="location" label="Location" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <Th col="applied_date" label="Applied Date" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <Th col="status" label="Status" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <th style={{ ...thStyle, cursor: "default" }}>Link / Portal</th>
+            <Th col="applied_date" label="Application Date" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <Th col="status" label="Application Status" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <th style={{ ...thStyle, cursor: "default" }}>Application Link / Portal</th>
+            <th style={{ ...thStyle, cursor: "default" }}>Contact Person</th>
+            <th style={{ ...thStyle, cursor: "default" }}>Email / Phone</th>
             <Th col="follow_up_date" label="Deadline" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <Th col="resume_used" label="Resume Used" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <th style={{ ...thStyle, cursor: "default" }}>Cover Letter</th>
+            <th style={{ ...thStyle, cursor: "default" }}>Notes</th>
           </tr>
         </thead>
         <tbody>
           {sorted.length === 0 && (
             <tr>
-              <td colSpan={9} style={{ ...tdStyle, textAlign: "center", color: TEXT_SECONDARY, padding: "32px" }}>
+              <td colSpan={10} style={{ ...tdStyle, textAlign: "center", color: TEXT_SECONDARY, padding: "32px" }}>
                 No applications yet.
               </td>
             </tr>
@@ -190,6 +238,18 @@ export default function ApplicationsTable({ apps, onRefresh }: Props) {
             const statusColor = STATUS_COLORS[app.status] ?? "#454545";
             const statusLabel = STATUS_LABELS[app.status] ?? app.status;
 
+            const isEditingCompany = editCell?.id === app.id && editCell.field === "company";
+            const isEditingRole = editCell?.id === app.id && editCell.field === "role";
+            const isEditingLocation = editCell?.id === app.id && editCell.field === "location";
+            const isEditingStatus = editCell?.id === app.id && editCell.field === "status";
+
+            const notesText = app.notes ?? "";
+            const notesTruncated = notesText.length > 50;
+            const notesExpanded = expandedNotes === app.id;
+            const notesDisplay = notesTruncated && !notesExpanded
+              ? notesText.slice(0, 50) + "..."
+              : notesText || "—";
+
             return (
               <tr
                 key={app.id}
@@ -197,58 +257,122 @@ export default function ApplicationsTable({ apps, onRefresh }: Props) {
                 onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.backgroundColor = SURFACE; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.backgroundColor = "transparent"; }}
               >
-                {/* Company */}
-                <td style={tdStyle}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span
-                      style={{
-                        width: "24px",
-                        height: "24px",
-                        borderRadius: "50%",
-                        backgroundColor: avatarBg,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        color: "#fff",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {initial}
-                    </span>
-                    <span style={{ fontWeight: 500 }}>{app.company}</span>
-                  </div>
+                {/* Company Name */}
+                <td
+                  style={{ ...tdStyle, cursor: "text" }}
+                  onClick={() => { if (!isEditingCompany) startEdit(app.id, "company", app.company); }}
+                >
+                  {isEditingCompany ? (
+                    <input
+                      autoFocus
+                      style={inlineInputStyle}
+                      value={editValue}
+                      onChange={(e) => { setEditValue(e.target.value); editValueRef.current = e.target.value; }}
+                      onBlur={() => commitEdit(app.id, "company")}
+                      onKeyDown={(e) => { if (e.key === "Escape") cancelEdit(); }}
+                    />
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span
+                        style={{
+                          width: "24px",
+                          height: "24px",
+                          borderRadius: "50%",
+                          backgroundColor: avatarBg,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          color: "#fff",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {initial}
+                      </span>
+                      <span style={{ fontWeight: 500 }}>{app.company}</span>
+                    </div>
+                  )}
                 </td>
 
-                {/* Role */}
-                <td style={tdStyle}>{app.role}</td>
+                {/* Role / Position */}
+                <td
+                  style={{ ...tdStyle, cursor: "text" }}
+                  onClick={() => { if (!isEditingRole) startEdit(app.id, "role", app.role); }}
+                >
+                  {isEditingRole ? (
+                    <input
+                      autoFocus
+                      style={inlineInputStyle}
+                      value={editValue}
+                      onChange={(e) => { setEditValue(e.target.value); editValueRef.current = e.target.value; }}
+                      onBlur={() => commitEdit(app.id, "role")}
+                      onKeyDown={(e) => { if (e.key === "Escape") cancelEdit(); }}
+                    />
+                  ) : (
+                    app.role
+                  )}
+                </td>
 
                 {/* Location */}
-                <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>{app.location ?? "—"}</td>
-
-                {/* Applied Date */}
-                <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>{fmtDate(app.applied_date)}</td>
-
-                {/* Status */}
-                <td style={tdStyle}>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      backgroundColor: statusColor,
-                      color: "#fff",
-                      fontSize: "11px",
-                      fontWeight: 500,
-                      padding: "2px 10px",
-                      borderRadius: "9999px",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {statusLabel}
-                  </span>
+                <td
+                  style={{ ...tdStyle, color: TEXT_SECONDARY, cursor: "text" }}
+                  onClick={() => { if (!isEditingLocation) startEdit(app.id, "location", app.location ?? ""); }}
+                >
+                  {isEditingLocation ? (
+                    <input
+                      autoFocus
+                      style={inlineInputStyle}
+                      value={editValue}
+                      onChange={(e) => { setEditValue(e.target.value); editValueRef.current = e.target.value; }}
+                      onBlur={() => commitEdit(app.id, "location")}
+                      onKeyDown={(e) => { if (e.key === "Escape") cancelEdit(); }}
+                    />
+                  ) : (
+                    app.location ?? "—"
+                  )}
                 </td>
 
-                {/* Link */}
+                {/* Application Date (read-only) */}
+                <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>{fmtDate(app.applied_date)}</td>
+
+                {/* Application Status */}
+                <td
+                  style={{ ...tdStyle, cursor: "pointer" }}
+                  onClick={() => { if (!isEditingStatus) startEdit(app.id, "status", app.status); }}
+                >
+                  {isEditingStatus ? (
+                    <select
+                      autoFocus
+                      style={inlineInputStyle}
+                      value={editValue}
+                      onChange={(e) => { setEditValue(e.target.value); editValueRef.current = e.target.value; }}
+                      onBlur={() => commitEdit(app.id, "status")}
+                      onKeyDown={(e) => { if (e.key === "Escape") cancelEdit(); }}
+                    >
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        backgroundColor: statusColor,
+                        color: "#fff",
+                        fontSize: "11px",
+                        fontWeight: 500,
+                        padding: "2px 10px",
+                        borderRadius: "9999px",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {statusLabel}
+                    </span>
+                  )}
+                </td>
+
+                {/* Application Link / Portal (read-only) */}
                 <td style={tdStyle}>
                   {app.job_url ? (
                     <a
@@ -274,31 +398,46 @@ export default function ApplicationsTable({ apps, onRefresh }: Props) {
                   )}
                 </td>
 
-                {/* Deadline */}
+                {/* Contact Person (always —) */}
+                <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>—</td>
+
+                {/* Email / Phone (always —) */}
+                <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>—</td>
+
+                {/* Deadline (read-only) */}
                 <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>{fmtDate(app.follow_up_date)}</td>
 
-                {/* Resume Used */}
-                <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>{app.resume_used ?? "—"}</td>
-
-                {/* Cover Letter */}
-                <td style={tdStyle}>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      fontSize: "11px",
-                      fontWeight: 500,
-                      padding: "2px 8px",
-                      borderRadius: "9999px",
-                      backgroundColor: app.cover_letter_used ? "#2e7d32" : "#2e2e2e",
-                      color: app.cover_letter_used ? "#fff" : TEXT_SECONDARY,
-                    }}
-                  >
-                    {app.cover_letter_used ? "Yes" : "No"}
-                  </span>
+                {/* Notes (expand on click) */}
+                <td
+                  style={{
+                    ...tdStyle,
+                    color: TEXT_SECONDARY,
+                    whiteSpace: notesExpanded ? "normal" : "nowrap",
+                    maxWidth: "200px",
+                    overflow: notesExpanded ? "visible" : "hidden",
+                    textOverflow: notesTruncated && !notesExpanded ? "ellipsis" : "unset",
+                    cursor: notesTruncated ? "pointer" : "default",
+                  }}
+                  onClick={() => { if (notesTruncated || notesExpanded) toggleNotes(app.id); }}
+                  title={notesTruncated && !notesExpanded ? notesText : undefined}
+                >
+                  {notesDisplay}
                 </td>
               </tr>
             );
           })}
+
+          {/* + New item row */}
+          <tr
+            onClick={onAdd}
+            style={{ cursor: "pointer", height: "36px" }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = SURFACE; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+          >
+            <td colSpan={10} style={{ ...tdStyle, color: TEXT_SECONDARY, fontSize: "12px" }}>
+              + New item
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>

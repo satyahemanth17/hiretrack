@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const [tab, setTab] = useState<'board' | 'table' | 'analytics'>('table');
   const [checking, setChecking] = useState(true);
   const [apps, setApps] = useState<Application[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -122,7 +123,7 @@ export default function DashboardPage() {
       {/* Content area */}
       <div style={{ padding: '24px 32px' }}>
         {tab === 'board' && <KanbanBoard />}
-        {tab === 'table' && <ApplicationsTable apps={apps} onRefresh={load} />}
+        {tab === 'table' && <ApplicationsTable apps={apps} onRefresh={load} onAdd={() => setShowAdd(true)} />}
         {tab === 'analytics' && <AnalyticsChart />}
       </div>
     </div>
