@@ -35,6 +35,10 @@ export interface Application {
   salary_max?: number;
   follow_up_date?: string;
   notes?: string;
+  resume_used?: string;
+  cover_letter_used?: boolean;
+  resume_file_path?: string;
+  cover_letter_file_path?: string;
 }
 
 export interface FunnelItem { status: string; count: number; }
@@ -64,3 +68,25 @@ export const analyzeKeywords = (resume: string, job_description: string) =>
     method: "POST",
     body: JSON.stringify({ resume, job_description }),
   });
+
+export const uploadResume = (id: string, file: File): Promise<Application> => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const form = new FormData();
+  form.append("file", file);
+  return fetch(`${BFF_URL}/api/applications/${id}/resume`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  }).then(r => { if (!r.ok) throw new Error(`Upload failed ${r.status}`); return r.json() as Promise<Application>; });
+};
+
+export const uploadCoverLetter = (id: string, file: File): Promise<Application> => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const form = new FormData();
+  form.append("file", file);
+  return fetch(`${BFF_URL}/api/applications/${id}/cover-letter`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  }).then(r => { if (!r.ok) throw new Error(`Upload failed ${r.status}`); return r.json() as Promise<Application>; });
+};

@@ -1,14 +1,41 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import KanbanBoard from '@/components/KanbanBoard';
 import AnalyticsChart from '@/components/AnalyticsChart';
+import ApplicationsTable from '@/components/ApplicationsTable';
+import DeadlinesCalendar from '@/components/DeadlinesCalendar';
+import AddJobModal from '@/components/AddJobModal';
+import { listApplications, Application } from '@/lib/api';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<'board' | 'analytics'>('board');
+  const [tab, setTab] = useState<'board' | 'table' | 'calendar' | 'analytics'>('table');
   const [checking, setChecking] = useState(true);
+  const [apps, setApps] = useState<Application[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const result = await listApplications();
+      setApps(Array.isArray(result) ? result : []);
+    } catch (err) {
+      console.error('Failed to load applications:', err);
+    }
+  }, []);
+
+  function logout() {
+    localStorage.removeItem('token');
+    router.push('/');
+  }
+
+  const tabs: { key: 'board' | 'table' | 'calendar' | 'analytics'; label: string }[] = [
+    { key: 'board', label: 'Application Status Board' },
+    { key: 'table', label: 'All Applications' },
+    { key: 'calendar', label: 'Deadlines Calendar' },
+    { key: 'analytics', label: 'Analytics' },
+  ];
 
   useEffect(() => {
     // Read token from URL if present (after GitHub OAuth redirect)
@@ -25,68 +52,92 @@ export default function DashboardPage() {
       router.push('/');
     } else {
       setChecking(false);
+      load();
     }
-  }, [router]);
+  }, [router, load]);
 
   if (checking) return null;
 
-  function logout() {
-    localStorage.removeItem('token');
-    router.push('/');
-  }
-
-  const navStyle = {
-    backgroundColor: 'var(--card-bg)',
-    borderBottom: '1px solid var(--border)',
-    padding: '0 24px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '24px',
-    height: '52px',
-  };
-  const activeTab = {
-    borderBottom: '2px solid var(--primary)',
-    color: 'var(--primary)',
-    fontWeight: '500' as const,
-  };
-  const inactiveTab = { color: 'var(--text-secondary)' };
-
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--surface)' }}>
-      <nav style={navStyle}>
-        <span className="font-semibold" style={{ color: 'var(--primary)' }}>
-          HireTrack
-        </span>
-        <a href="/dashboard" className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Dashboard
-        </a>
-        <a href="/matcher" className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Matcher
-        </a>
-        <div className="flex-1" />
-        <button onClick={logout} className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Logout
-        </button>
-      </nav>
-      <div style={{ padding: '24px' }}>
-        <div className="flex gap-6 mb-6 border-b" style={{ borderColor: 'var(--border)' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#191919', position: 'relative' }}>
+      {/* Logout button — top right */}
+      <button
+        onClick={logout}
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '32px',
+          color: '#787878',
+          fontSize: '12px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+        }}
+      >
+        Logout
+      </button>
+
+      {/* Page header */}
+      <h1
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          fontSize: '2rem',
+          fontWeight: 700,
+          color: '#ffffffcf',
+          padding: '32px 32px 0 32px',
+          margin: 0,
+        }}
+      >
+        🎓 Job Application Tracker
+      </h1>
+
+      {/* Tab bar */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 0,
+          marginTop: '20px',
+          padding: '0 32px',
+          borderBottom: '1px solid #2e2e2e',
+        }}
+      >
+        {tabs.map(({ key, label }) => (
           <button
-            onClick={() => setTab('board')}
-            className="pb-3 text-sm"
-            style={tab === 'board' ? activeTab : inactiveTab}
+            key={key}
+            onClick={() => setTab(key)}
+            style={{
+              padding: '8px 16px',
+              fontSize: '14px',
+              color: tab === key ? '#ffffffcf' : '#787878',
+              cursor: 'pointer',
+              background: 'none',
+              border: 'none',
+              borderBottom: tab === key ? '2px solid #ffffffcf' : '2px solid transparent',
+              marginBottom: '-1px',
+            }}
           >
-            Board
+            {label}
           </button>
-          <button
-            onClick={() => setTab('analytics')}
-            className="pb-3 text-sm"
-            style={tab === 'analytics' ? activeTab : inactiveTab}
-          >
-            Analytics
-          </button>
-        </div>
-        {tab === 'board' ? <KanbanBoard /> : <AnalyticsChart />}
+        ))}
       </div>
+
+      {/* Content area */}
+      <div style={{ padding: '24px 32px' }}>
+        {tab === 'board' && <KanbanBoard />}
+        {tab === 'table' && <ApplicationsTable apps={apps} onRefresh={load} onAdd={() => setShowAdd(true)} />}
+        {tab === 'calendar' && <DeadlinesCalendar apps={apps} />}
+        {tab === 'analytics' && <AnalyticsChart />}
+      </div>
+
+      {showAdd && (
+        <AddJobModal
+          initialStatus="applied"
+          onClose={() => setShowAdd(false)}
+          onSaved={() => { setShowAdd(false); load(); }}
+        />
+      )}
     </div>
   );
 }

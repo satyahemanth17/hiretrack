@@ -1,6 +1,8 @@
+import os
+import shutil
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
@@ -12,6 +14,8 @@ from ..schemas import (
     ApplicationUpdate,
     PaginatedApplications,
 )
+
+UPLOAD_DIR = "/app/uploads"
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -111,3 +115,65 @@ def delete_application(
         raise HTTPException(status_code=404, detail="Application not found")
     db.delete(app_obj)
     db.commit()
+
+
+@router.post("/{app_id}/resume", response_model=ApplicationResponse)
+async def upload_resume(
+    app_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    app_obj = db.query(Application).filter(
+        Application.id == app_id,
+        Application.user_id == int(current_user["sub"]),
+    ).first()
+    if not app_obj:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    original_name = os.path.basename(file.filename or "upload")
+    _, ext = os.path.splitext(original_name)
+    allowed_ext = {".pdf", ".doc", ".docx", ".txt"}
+    if ext.lower() not in allowed_ext:
+        raise HTTPException(status_code=400, detail=f"File type '{ext}' not allowed. Use PDF, DOC, DOCX, or TXT.")
+    safe_name = f"{app_id}_resume_{uuid.uuid4().hex}{ext}"
+    dest = os.path.join(UPLOAD_DIR, safe_name)
+    with open(dest, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+
+    app_obj.resume_file_path = safe_name
+    db.commit()
+    db.refresh(app_obj)
+    return app_obj
+
+
+@router.post("/{app_id}/cover-letter", response_model=ApplicationResponse)
+async def upload_cover_letter(
+    app_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    app_obj = db.query(Application).filter(
+        Application.id == app_id,
+        Application.user_id == int(current_user["sub"]),
+    ).first()
+    if not app_obj:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    original_name = os.path.basename(file.filename or "upload")
+    _, ext = os.path.splitext(original_name)
+    allowed_ext = {".pdf", ".doc", ".docx", ".txt"}
+    if ext.lower() not in allowed_ext:
+        raise HTTPException(status_code=400, detail=f"File type '{ext}' not allowed. Use PDF, DOC, DOCX, or TXT.")
+    safe_name = f"{app_id}_coverletter_{uuid.uuid4().hex}{ext}"
+    dest = os.path.join(UPLOAD_DIR, safe_name)
+    with open(dest, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+
+    app_obj.cover_letter_file_path = safe_name
+    db.commit()
+    db.refresh(app_obj)
+    return app_obj

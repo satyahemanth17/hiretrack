@@ -2,13 +2,13 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #5E6AD2;
-  --primary-hover: #4F5BBF;
-  --surface: #F7F8FA;
-  --card-bg: #FFFFFF;
-  --text-primary: #1A1A1A;
-  --text-secondary: #6B7280;
-  --border: #E5E7EB;
+  --primary: #0a7cff;
+  --primary-hover: #0066dd;
+  --surface: #191919;
+  --card-bg: #252525;
+  --text-primary: #ffffffcf;
+  --text-secondary: #787878;
+  --border: #2e2e2e;
 }
 
 html {

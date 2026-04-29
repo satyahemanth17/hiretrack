@@ -18,6 +18,10 @@ class ApplicationCreate(BaseModel):
     salary_max: Optional[int] = None
     applied_date: date
     follow_up_date: Optional[date] = None
+    resume_used: Optional[str] = None
+    cover_letter_used: Optional[bool] = None
+    resume_file_path: Optional[str] = None
+    cover_letter_file_path: Optional[str] = None
 
 
 class ApplicationUpdate(BaseModel):
@@ -32,6 +36,10 @@ class ApplicationUpdate(BaseModel):
     salary_max: Optional[int] = None
     applied_date: Optional[date] = None
     follow_up_date: Optional[date] = None
+    resume_used: Optional[str] = None
+    cover_letter_used: Optional[bool] = None
+    resume_file_path: Optional[str] = None
+    cover_letter_file_path: Optional[str] = None
 
 
 class ApplicationResponse(BaseModel):
@@ -48,6 +56,10 @@ class ApplicationResponse(BaseModel):
     salary_max: Optional[int]
     applied_date: date
     follow_up_date: Optional[date]
+    resume_used: Optional[str]
+    cover_letter_used: Optional[bool]
+    resume_file_path: Optional[str]
+    cover_letter_file_path: Optional[str]
     created_at: datetime
     updated_at: datetime
 
