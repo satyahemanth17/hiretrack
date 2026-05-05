@@ -68,7 +68,7 @@ export default function LoginPage() {
             marginBottom: 0,
           }}
         >
-          Track every application. Land your next role.
+          Track your job search, effortlessly.
         </p>
 
         <motion.a

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { Application, createApplication } from "@/lib/api";
 
 interface Props {
@@ -27,7 +28,7 @@ export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
   });
   const [selectedDay, setSelectedDay] = useState<string | null>(null); // "YYYY-MM-DD"
   const [addingToDay, setAddingToDay] = useState<string | null>(null);
-  const [addForm, setAddForm] = useState({ company: "", role: "", applied_date: today, status: "applied" });
+  const [addForm, setAddForm] = useState({ company: "", role: "", location: "", applied_date: today, status: "applied" });
   const [addError, setAddError] = useState("");
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
 
@@ -47,12 +48,13 @@ export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
       await createApplication({
         company: addForm.company,
         role: addForm.role,
+        location: addForm.location || undefined,
         status: addForm.status,
         applied_date: addForm.applied_date,
         follow_up_date: day,
       });
       setAddingToDay(null);
-      setAddForm({ company: "", role: "", applied_date: today, status: "applied" });
+      setAddForm({ company: "", role: "", location: "", applied_date: today, status: "applied" });
       setAddError("");
       onRefresh?.();
     } catch (e) {
@@ -152,7 +154,6 @@ export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
           gap: "1px",
           backgroundColor: "#2e2e2e",
           borderRadius: "6px 6px 0 0",
-          overflow: "hidden",
         }}
       >
         {DOW.map(d => (
@@ -176,9 +177,11 @@ export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
           const isToday = day === today;
           const isSelected = day === selectedDay;
           return (
-            <div
+            <motion.div
               key={i}
               onClick={() => day && setSelectedDay(day === selectedDay ? null : day)}
+              whileHover={day ? { scale: 1.02, zIndex: 1 } : {}}
+              transition={{ duration: 0.1, type: "tween" }}
               style={{
                 backgroundColor: isSelected ? "#2a2a3a" : "#191919",
                 padding: "8px",
@@ -187,16 +190,8 @@ export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
                 borderTop: "1px solid #2e2e2e",
                 position: "relative",
               }}
-              onMouseEnter={e => {
-                if (day) {
-                  e.currentTarget.style.backgroundColor = "#252525";
-                  setHoveredDay(day);
-                }
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = isSelected ? "#2a2a3a" : "#191919";
-                setHoveredDay(null);
-              }}
+              onMouseEnter={() => { if (day) setHoveredDay(day); }}
+              onMouseLeave={() => setHoveredDay(null)}
             >
               {day && (
                 <>
@@ -255,7 +250,7 @@ export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
                   )}
                 </>
               )}
-            </div>
+            </motion.div>
           );
         })}
       </div>
@@ -283,7 +278,7 @@ export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
             </button>
           </div>
           {addError && <p style={{ color: "#b71c1c", fontSize: "12px", marginBottom: "8px" }}>{addError}</p>}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "8px" }}>
             <input
               placeholder="Company *"
               value={addForm.company}
@@ -294,6 +289,12 @@ export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
               placeholder="Role *"
               value={addForm.role}
               onChange={e => setAddForm(f => ({ ...f, role: e.target.value }))}
+              style={{ backgroundColor: "#1e1e1e", border: "1px solid #2e2e2e", borderRadius: "4px", color: "#ffffffcf", padding: "6px 10px", fontSize: "13px" }}
+            />
+            <input
+              placeholder="Location"
+              value={addForm.location}
+              onChange={e => setAddForm(f => ({ ...f, location: e.target.value }))}
               style={{ backgroundColor: "#1e1e1e", border: "1px solid #2e2e2e", borderRadius: "4px", color: "#ffffffcf", padding: "6px 10px", fontSize: "13px" }}
             />
             <input
