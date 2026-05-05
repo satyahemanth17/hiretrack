@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import KanbanBoard from '@/components/KanbanBoard';
 import AnalyticsChart from '@/components/AnalyticsChart';
 import ApplicationsTable from '@/components/ApplicationsTable';
@@ -104,9 +105,11 @@ export default function DashboardPage() {
         }}
       >
         {tabs.map(({ key, label }) => (
-          <button
+          <motion.button
             key={key}
             onClick={() => setTab(key)}
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.15, type: 'tween' }}
             style={{
               padding: '8px 16px',
               fontSize: '14px',
@@ -119,7 +122,7 @@ export default function DashboardPage() {
             }}
           >
             {label}
-          </button>
+          </motion.button>
         ))}
       </div>
 
@@ -127,7 +130,7 @@ export default function DashboardPage() {
       <div style={{ padding: '24px 32px' }}>
         {tab === 'board' && <KanbanBoard />}
         {tab === 'table' && <ApplicationsTable apps={apps} onRefresh={load} onAdd={() => setShowAdd(true)} />}
-        {tab === 'calendar' && <DeadlinesCalendar apps={apps} />}
+        {tab === 'calendar' && <DeadlinesCalendar apps={apps} onRefresh={load} />}
         {tab === 'analytics' && <AnalyticsChart />}
       </div>
 

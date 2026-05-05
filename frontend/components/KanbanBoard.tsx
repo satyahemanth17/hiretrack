@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { DndContext, DragEndEvent, useDroppable, useDraggable } from "@dnd-kit/core";
 import { listApplications, updateApplication, Application } from "@/lib/api";
 import AddJobModal from "./AddJobModal";
@@ -15,6 +16,15 @@ const STATUS_LABELS: Record<Status, string> = {
   offer: "Offer",
   rejected: "Rejected",
   withdrawn: "Withdrawn",
+};
+
+const STATUS_BG_COLORS: Record<Status, string> = {
+  applied: "#1e3a5f",
+  phone_screen: "#3d2e00",
+  interview: "#2d1b4e",
+  offer: "#1a3d2b",
+  rejected: "#3d1a1a",
+  withdrawn: "#2a2a2a",
 };
 
 // Dark theme status dot / title colors
@@ -34,24 +44,24 @@ function Card({ app }: { app: Application }) {
     : undefined;
 
   return (
-    <div
-      ref={setNodeRef}
-      style={{
-        ...style,
-        backgroundColor: "#1e1e1e",
-        border: "1px solid #2e2e2e",
-        borderRadius: "6px",
-        cursor: "grab",
-        padding: "10px 12px",
-        marginBottom: "8px",
-      }}
-      className="select-none"
-      {...listeners}
-      {...attributes}
-    >
-      <p style={{ color: "#ffffffcf", fontWeight: 600, fontSize: "13px", margin: 0 }}>{app.company}</p>
-      <p style={{ color: "#787878", fontSize: "13px", marginTop: "2px", marginBottom: 0 }}>{app.role}</p>
-      <p style={{ color: "#787878", fontSize: "12px", marginTop: "4px", marginBottom: 0 }}>{app.applied_date}</p>
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      <motion.div
+        whileHover={{ scale: 1.05 }}
+        transition={{ duration: 0.15, type: "tween" }}
+        style={{
+          backgroundColor: "#1e1e1e",
+          border: "1px solid #2e2e2e",
+          borderRadius: "6px",
+          cursor: "grab",
+          padding: "10px 12px",
+          marginBottom: "8px",
+        }}
+        className="select-none"
+      >
+        <p style={{ color: "#ffffffcf", fontWeight: 600, fontSize: "13px", margin: 0 }}>{app.company}</p>
+        <p style={{ color: "#787878", fontSize: "13px", marginTop: "2px", marginBottom: 0 }}>{app.role}</p>
+        <p style={{ color: "#787878", fontSize: "12px", marginTop: "4px", marginBottom: 0 }}>{app.applied_date}</p>
+      </motion.div>
     </div>
   );
 }
@@ -65,7 +75,7 @@ function Column({ status, cards, onAdd }: { status: Status; cards: Application[]
       ref={setNodeRef}
       style={{
         minWidth: "220px",
-        backgroundColor: isOver ? "#2a2a2a" : "#252525",
+        backgroundColor: isOver ? "#333333" : STATUS_BG_COLORS[status],
         border: "1px solid #2e2e2e",
         borderRadius: "6px",
         padding: "12px",

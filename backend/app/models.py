@@ -43,6 +43,8 @@ class Application(Base):
     cover_letter_used: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)
     resume_file_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     cover_letter_file_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    resume_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    cover_letter_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )

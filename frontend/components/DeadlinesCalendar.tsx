@@ -1,9 +1,10 @@
 "use client";
 import { useState } from "react";
-import { Application } from "@/lib/api";
+import { Application, createApplication } from "@/lib/api";
 
 interface Props {
   apps: Application[];
+  onRefresh?: () => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -17,18 +18,46 @@ const STATUS_COLORS: Record<string, string> = {
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export default function DeadlinesCalendar({ apps }: Props) {
+export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
+  const today = new Date().toISOString().slice(0, 10);
+
   const [currentMonth, setCurrentMonth] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
   const [selectedDay, setSelectedDay] = useState<string | null>(null); // "YYYY-MM-DD"
+  const [addingToDay, setAddingToDay] = useState<string | null>(null);
+  const [addForm, setAddForm] = useState({ company: "", role: "", applied_date: today, status: "applied" });
+  const [addError, setAddError] = useState("");
+  const [hoveredDay, setHoveredDay] = useState<string | null>(null);
 
   function prevMonth() {
     setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() - 1, 1));
   }
   function nextMonth() {
     setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() + 1, 1));
+  }
+
+  async function handleAdd(day: string) {
+    if (!addForm.company || !addForm.role || !addForm.applied_date) {
+      setAddError("Company, Role, and Applied Date are required.");
+      return;
+    }
+    try {
+      await createApplication({
+        company: addForm.company,
+        role: addForm.role,
+        status: addForm.status,
+        applied_date: addForm.applied_date,
+        follow_up_date: day,
+      });
+      setAddingToDay(null);
+      setAddForm({ company: "", role: "", applied_date: today, status: "applied" });
+      setAddError("");
+      onRefresh?.();
+    } catch (e) {
+      setAddError("Failed to save. Please try again.");
+    }
   }
 
   const year = currentMonth.getFullYear();
@@ -54,7 +83,6 @@ export default function DeadlinesCalendar({ apps }: Props) {
   }
 
   const monthLabel = currentMonth.toLocaleString("en-US", { month: "long", year: "numeric" });
-  const today = new Date().toISOString().slice(0, 10);
 
   const selectedApps = selectedDay ? (byDate[selectedDay] ?? []) : [];
 
@@ -98,6 +126,21 @@ export default function DeadlinesCalendar({ apps }: Props) {
           }}
         >
           →
+        </button>
+        <button
+          onClick={() => { setAddingToDay(today); setAddForm(f => ({ ...f, applied_date: today })); }}
+          style={{
+            marginLeft: "auto",
+            background: "none",
+            border: "1px solid #2e2e2e",
+            borderRadius: "4px",
+            color: "#787878",
+            cursor: "pointer",
+            padding: "4px 10px",
+            fontSize: "12px",
+          }}
+        >
+          + New
         </button>
       </div>
 
@@ -145,10 +188,14 @@ export default function DeadlinesCalendar({ apps }: Props) {
                 position: "relative",
               }}
               onMouseEnter={e => {
-                if (day) e.currentTarget.style.backgroundColor = "#252525";
+                if (day) {
+                  e.currentTarget.style.backgroundColor = "#252525";
+                  setHoveredDay(day);
+                }
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.backgroundColor = isSelected ? "#2a2a3a" : "#191919";
+                setHoveredDay(null);
               }}
             >
               {day && (
@@ -182,12 +229,108 @@ export default function DeadlinesCalendar({ apps }: Props) {
                       </span>
                     )}
                   </div>
+                  {hoveredDay === day && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAddingToDay(day);
+                        setAddForm(f => ({ ...f, applied_date: day }));
+                      }}
+                      style={{
+                        position: "absolute",
+                        top: "4px",
+                        right: "4px",
+                        background: "none",
+                        border: "none",
+                        color: "#787878",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        lineHeight: 1,
+                        padding: "0 2px",
+                      }}
+                      title="Add application"
+                    >
+                      +
+                    </button>
+                  )}
                 </>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* Inline add form */}
+      {addingToDay && (
+        <div
+          style={{
+            marginTop: "16px",
+            backgroundColor: "#252525",
+            borderRadius: "6px",
+            border: "1px solid #2e2e2e",
+            padding: "16px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+            <p style={{ color: "#ffffffcf", fontSize: "13px", fontWeight: 600, margin: 0 }}>
+              Add application — {new Date(addingToDay + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            </p>
+            <button
+              onClick={() => { setAddingToDay(null); setAddError(""); }}
+              style={{ background: "none", border: "none", color: "#787878", cursor: "pointer", fontSize: "16px" }}
+            >
+              ×
+            </button>
+          </div>
+          {addError && <p style={{ color: "#b71c1c", fontSize: "12px", marginBottom: "8px" }}>{addError}</p>}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+            <input
+              placeholder="Company *"
+              value={addForm.company}
+              onChange={e => setAddForm(f => ({ ...f, company: e.target.value }))}
+              style={{ backgroundColor: "#1e1e1e", border: "1px solid #2e2e2e", borderRadius: "4px", color: "#ffffffcf", padding: "6px 10px", fontSize: "13px" }}
+            />
+            <input
+              placeholder="Role *"
+              value={addForm.role}
+              onChange={e => setAddForm(f => ({ ...f, role: e.target.value }))}
+              style={{ backgroundColor: "#1e1e1e", border: "1px solid #2e2e2e", borderRadius: "4px", color: "#ffffffcf", padding: "6px 10px", fontSize: "13px" }}
+            />
+            <input
+              type="date"
+              value={addForm.applied_date}
+              onChange={e => setAddForm(f => ({ ...f, applied_date: e.target.value }))}
+              style={{ backgroundColor: "#1e1e1e", border: "1px solid #2e2e2e", borderRadius: "4px", color: "#ffffffcf", padding: "6px 10px", fontSize: "13px" }}
+            />
+            <select
+              value={addForm.status}
+              onChange={e => setAddForm(f => ({ ...f, status: e.target.value }))}
+              style={{ backgroundColor: "#1e1e1e", border: "1px solid #2e2e2e", borderRadius: "4px", color: "#ffffffcf", padding: "6px 10px", fontSize: "13px" }}
+            >
+              <option value="applied">Applied</option>
+              <option value="phone_screen">Phone Screen</option>
+              <option value="interview">Interview</option>
+              <option value="offer">Offer</option>
+              <option value="rejected">Rejected</option>
+              <option value="withdrawn">Withdrawn</option>
+            </select>
+          </div>
+          <button
+            onClick={() => handleAdd(addingToDay)}
+            style={{
+              backgroundColor: "#0a7cff",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              padding: "6px 16px",
+              fontSize: "13px",
+              cursor: "pointer",
+            }}
+          >
+            Save
+          </button>
+        </div>
+      )}
 
       {/* Selected day detail */}
       {selectedDay && (

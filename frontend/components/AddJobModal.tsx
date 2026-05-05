@@ -31,12 +31,12 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
     salary_max: "",
     follow_up_date: "",
     notes: "",
-    resume_used: "",
-    cover_letter_used: false,
+    resume_url: "",
+    cover_letter_url: "",
   });
   const [error, setError] = useState("");
 
-  function set(field: keyof typeof form, value: string | boolean) {
+  function set(field: keyof typeof form, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -58,8 +58,8 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
         salary_max: form.salary_max ? Number(form.salary_max) : undefined,
         follow_up_date: form.follow_up_date || undefined,
         notes: form.notes || undefined,
-        resume_used: form.resume_used || undefined,
-        cover_letter_used: form.cover_letter_used,
+        resume_url: form.resume_url || undefined,
+        cover_letter_url: form.cover_letter_url || undefined,
       });
       onSaved();
     } catch (err) {
@@ -227,29 +227,25 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
           </div>
 
           <div>
-            <label style={labelStyle}>Resume Used</label>
+            <label style={labelStyle}>Resume URL</label>
             <input
-              placeholder="Resume version (e.g., v3-SWE)"
-              value={form.resume_used}
-              onChange={(e) => set("resume_used", e.target.value)}
+              type="url"
+              placeholder="https://..."
+              value={form.resume_url}
+              onChange={(e) => set("resume_url", e.target.value)}
               style={inputStyle}
             />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingTop: "2px" }}>
+          <div>
+            <label style={labelStyle}>Cover Letter URL</label>
             <input
-              id="cover_letter_used"
-              type="checkbox"
-              checked={form.cover_letter_used}
-              onChange={(e) => set("cover_letter_used", e.target.checked)}
-              style={{ width: "14px", height: "14px", cursor: "pointer", accentColor: "#0a7cff" }}
+              type="url"
+              placeholder="https://..."
+              value={form.cover_letter_url}
+              onChange={(e) => set("cover_letter_url", e.target.value)}
+              style={inputStyle}
             />
-            <label
-              htmlFor="cover_letter_used"
-              style={{ ...labelStyle, marginBottom: 0, cursor: "pointer" }}
-            >
-              Cover letter included?
-            </label>
           </div>
 
           <div className="flex gap-2 pt-2">
