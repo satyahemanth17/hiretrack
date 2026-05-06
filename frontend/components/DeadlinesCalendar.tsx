@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Application, createApplication } from "@/lib/api";
+import StatusDropdown, { StatusValue } from "./StatusDropdown";
 
 interface Props {
   apps: Application[];
@@ -17,113 +18,9 @@ const STATUS_COLORS: Record<string, string> = {
   withdrawn: "#454545",
 };
 
-// Calendar-specific status options with user-friendly labels
-const CALENDAR_STATUSES = [
-  { value: "withdrawn", label: "Not Applied Yet", color: "#454545" },
-  { value: "applied", label: "Applied", color: "#0a7cff" },
-  { value: "phone_screen", label: "In Progress", color: "#d9a21b" },
-  { value: "interview", label: "Interview Scheduled", color: "#7c51bb" },
-  { value: "offer", label: "Offer Received", color: "#2e7d32" },
-  { value: "rejected", label: "Rejected", color: "#b71c1c" },
-] as const;
-
-type CalStatusValue = typeof CALENDAR_STATUSES[number]["value"];
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// ── Custom colored status dropdown ─────────────────────────────────────────────
-function StatusPill({ value, label, color }: { value: string; label: string; color: string }) {
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        backgroundColor: color,
-        color: "#ffffff",
-        borderRadius: "9999px",
-        padding: "3px 12px",
-        fontSize: "12px",
-        fontWeight: 500,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {label}
-    </span>
-  );
-}
-
-function StatusDropdown({
-  value,
-  onChange,
-}: {
-  value: CalStatusValue;
-  onChange: (v: CalStatusValue) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const selected = CALENDAR_STATUSES.find((s) => s.value === value) ?? CALENDAR_STATUSES[1];
-
-  return (
-    <div style={{ position: "relative" }}>
-      <div
-        onClick={() => setOpen((o) => !o)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          backgroundColor: "#1e1e1e",
-          border: "1px solid #2e2e2e",
-          borderRadius: "4px",
-          padding: "6px 10px",
-          cursor: "pointer",
-          userSelect: "none",
-        }}
-      >
-        <StatusPill value={selected.value} label={selected.label} color={selected.color} />
-        <span style={{ color: "#787878", fontSize: "11px", marginLeft: "auto" }}>▼</span>
-      </div>
-
-      {open && (
-        <>
-          {/* Backdrop to close dropdown */}
-          <div
-            style={{ position: "fixed", inset: 0, zIndex: 99 }}
-            onClick={() => setOpen(false)}
-          />
-          <div
-            style={{
-              position: "absolute",
-              top: "calc(100% + 4px)",
-              left: 0,
-              zIndex: 100,
-              backgroundColor: "#252525",
-              border: "1px solid #2e2e2e",
-              borderRadius: "6px",
-              padding: "4px",
-              minWidth: "200px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-            }}
-          >
-            {CALENDAR_STATUSES.map((s) => (
-              <div
-                key={s.value}
-                onClick={() => { onChange(s.value); setOpen(false); }}
-                style={{
-                  padding: "6px 8px",
-                  cursor: "pointer",
-                  borderRadius: "4px",
-                  backgroundColor: value === s.value ? "rgba(255,255,255,0.06)" : "transparent",
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.backgroundColor = "rgba(255,255,255,0.08)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.backgroundColor = value === s.value ? "rgba(255,255,255,0.06)" : "transparent"; }}
-              >
-                <StatusPill value={s.value} label={s.label} color={s.color} />
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
 export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
   const today = new Date().toISOString().slice(0, 10);
@@ -139,7 +36,7 @@ export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
     role: string;
     location: string;
     applied_date: string;
-    status: CalStatusValue;
+    status: StatusValue;
   }>({ company: "", role: "", location: "", applied_date: today, status: "applied" });
   const [addError, setAddError] = useState("");
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);

@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const [checking, setChecking] = useState(true);
   const [apps, setApps] = useState<Application[]>([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   const load = useCallback(async () => {
     try {
@@ -29,6 +30,13 @@ export default function DashboardPage() {
   function logout() {
     localStorage.removeItem('token');
     router.push('/');
+  }
+
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('theme', next);
+    document.documentElement.setAttribute('data-theme', next);
   }
 
   const tabs: { key: 'board' | 'table' | 'calendar' | 'analytics'; label: string }[] = [
@@ -54,13 +62,37 @@ export default function DashboardPage() {
     } else {
       setChecking(false);
       load();
+      const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' | null;
+      const t = savedTheme ?? 'dark';
+      setTheme(t);
+      document.documentElement.setAttribute('data-theme', t);
     }
   }, [router, load]);
 
   if (checking) return null;
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#191919', position: 'relative' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--surface)', position: 'relative' }}>
+      {/* Theme toggle */}
+      <motion.button
+        onClick={toggleTheme}
+        whileHover={{ scale: 1.1 }}
+        transition={{ duration: 0.15, ease: 'easeOut' }}
+        title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '100px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '16px',
+          lineHeight: 1,
+        }}
+      >
+        {theme === 'dark' ? '🌙' : '☀️'}
+      </motion.button>
+
       {/* Logout button — top right */}
       <motion.button
         onClick={logout}
