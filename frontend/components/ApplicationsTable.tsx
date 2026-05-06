@@ -244,22 +244,6 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
           )}
         </div>
         <motion.button
-          onClick={onRefresh}
-          whileHover={{ scale: 1.05, y: -1 }}
-          transition={{ duration: 0.15, ease: "easeOut" }}
-          style={{
-            fontSize: "12px",
-            color: TEXT_SECONDARY,
-            background: "none",
-            border: `1px solid ${BORDER}`,
-            borderRadius: "4px",
-            padding: "4px 10px",
-            cursor: "pointer",
-          }}
-        >
-          ↻ Refresh
-        </motion.button>
-        <motion.button
           onClick={onAdd}
           whileHover={{ scale: 1.05, y: -1 }}
           transition={{ duration: 0.15, ease: "easeOut" }}

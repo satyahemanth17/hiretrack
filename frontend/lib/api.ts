@@ -7,6 +7,7 @@ function getToken(): string | null {
 
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
+  console.debug("[api] token present:", !!token, "path:", path);
   const { headers: callerHeaders, ...rest } = options;
   const res = await fetch(`${BFF_URL}${path}`, {
     ...rest,
@@ -16,6 +17,11 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
       ...(callerHeaders as Record<string, string> | undefined),
     },
   });
+  if (res.status === 401) {
+    localStorage.removeItem("token");
+    window.location.href = "/";
+    throw new Error("Session expired. Please log in again.");
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`API error ${res.status}${body ? `: ${body}` : ""}`);
