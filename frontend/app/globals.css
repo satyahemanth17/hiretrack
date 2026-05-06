@@ -1,8 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
-:root,
-[data-theme="dark"] {
+:root {
   --primary: #0a7cff;
   --primary-hover: #0066dd;
   --surface: #191919;
@@ -10,16 +9,6 @@
   --text-primary: #ffffff;
   --text-secondary: #787878;
   --border: #2e2e2e;
-}
-
-[data-theme="light"] {
-  --primary: #0a7cff;
-  --primary-hover: #0066dd;
-  --surface: #f5f5f5;
-  --card-bg: #ffffff;
-  --text-primary: #0a0a0a;
-  --text-secondary: #555555;
-  --border: #e0e0e0;
 }
 
 html {
@@ -30,5 +19,4 @@ html {
 body {
   background-color: var(--surface);
   color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
 }

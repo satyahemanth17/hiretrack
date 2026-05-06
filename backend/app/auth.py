@@ -11,7 +11,7 @@ load_dotenv()
 
 SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-prod")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
 GITHUB_CLIENT_ID: str = os.getenv("GITHUB_CLIENT_ID", "")
 GITHUB_CLIENT_SECRET: str = os.getenv("GITHUB_CLIENT_SECRET", "")
