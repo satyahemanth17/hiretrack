@@ -5,18 +5,11 @@ import { motion } from "framer-motion";
 import { DndContext, DragEndEvent, useDroppable, useDraggable } from "@dnd-kit/core";
 import { listApplications, updateApplication, Application } from "@/lib/api";
 import AddJobModal from "./AddJobModal";
+import EditApplicationModal from "./EditApplicationModal";
+import { StatusPill, STATUS_OPTIONS } from "./StatusDropdown";
 
 const STATUSES = ["applied", "phone_screen", "interview", "offer", "rejected", "withdrawn"] as const;
 type Status = typeof STATUSES[number];
-
-const STATUS_LABELS: Record<Status, string> = {
-  applied: "Applied",
-  phone_screen: "In Progress",
-  interview: "Interview Scheduled",
-  offer: "Offer Received",
-  rejected: "Rejected",
-  withdrawn: "Not Applied Yet",
-};
 
 const STATUS_BG_COLORS: Record<Status, string> = {
   applied: "#1e3a5f",
@@ -36,52 +29,17 @@ const CARD_BG_COLORS: Record<Status, string> = {
   withdrawn: "#363636",
 };
 
-// ── Application detail modal ───────────────────────────────────────────────────
-function DetailModal({ app, onClose }: { app: Application; onClose: () => void }) {
-  const rows: [string, string][] = [
-    ["Company", app.company],
-    ["Role", app.role],
-    ["Status", app.status.replace("_", " ")],
-    ["Applied Date", app.applied_date ?? "—"],
-    ["Location", app.location ?? "—"],
-    ["Job URL", app.job_url ?? "—"],
-    ["Follow-up Date", app.follow_up_date ?? "—"],
-    ["Notes", app.notes ?? "—"],
-    ["Resume URL", app.resume_url ?? "—"],
-    ["Cover Letter URL", app.cover_letter_url ?? "—"],
-  ];
-
-  return (
-    <div
-      style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}
-      onClick={onClose}
-    >
-      <div
-        style={{ backgroundColor: "#252525", borderRadius: "8px", padding: "24px", maxWidth: "480px", width: "90%", border: "1px solid #2e2e2e", maxHeight: "80vh", overflowY: "auto" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h2 style={{ color: "#ffffff", fontWeight: 700, fontSize: "16px", margin: 0 }}>{app.company}</h2>
-          <motion.button
-            onClick={onClose}
-            whileHover={{ scale: 1.05, y: -1 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            style={{ background: "none", border: "none", color: "#787878", fontSize: "20px", cursor: "pointer", lineHeight: 1 }}
-          >
-            ×
-          </motion.button>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {rows.map(([label, value]) => (
-            <div key={label} style={{ display: "flex", gap: "12px" }}>
-              <span style={{ color: "#787878", fontSize: "12px", minWidth: "120px", flexShrink: 0, paddingTop: "1px" }}>{label}</span>
-              <span style={{ color: "#ffffff", fontSize: "13px", wordBreak: "break-all" }}>{value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return "—";
+  try {
+    return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
 }
 
 // ── Card ───────────────────────────────────────────────────────────────────────
@@ -120,7 +78,7 @@ function Card({ app, onOpenDetail }: { app: Application; onOpenDetail: (a: Appli
       >
         <p style={{ color: "#ffffff", fontWeight: 600, fontSize: "13px", margin: 0 }}>{app.company}</p>
         <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "13px", marginTop: "2px", marginBottom: 0 }}>{app.role}</p>
-        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", marginTop: "4px", marginBottom: 0 }}>{app.applied_date}</p>
+        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", marginTop: "4px", marginBottom: 0 }}>{formatDate(app.applied_date)}</p>
       </motion.div>
     </div>
   );
@@ -139,6 +97,7 @@ function Column({
   onOpenDetail: (a: Application) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+  const opt = STATUS_OPTIONS.find((o) => o.value === status) ?? STATUS_OPTIONS[1];
 
   return (
     <div
@@ -152,7 +111,6 @@ function Column({
         transition: "background-color 0.15s",
       }}
     >
-      {/* Plain text header — no box */}
       <div
         style={{
           display: "flex",
@@ -162,10 +120,8 @@ function Column({
           padding: "2px 4px",
         }}
       >
-        <span style={{ fontWeight: 700, fontSize: "13px", color: "#ffffff" }}>
-          {STATUS_LABELS[status]}
-        </span>
-        <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>
+        <StatusPill label={opt.label} color={opt.color} outerColor={opt.outerColor} />
+        <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", marginLeft: "8px" }}>
           {cards.length}
         </span>
       </div>
@@ -305,7 +261,12 @@ export default function KanbanBoard() {
       )}
 
       {selectedApp && (
-        <DetailModal app={selectedApp} onClose={() => setSelectedApp(null)} />
+        <EditApplicationModal
+          app={selectedApp}
+          onClose={() => setSelectedApp(null)}
+          onSaved={() => { setSelectedApp(null); load(); }}
+          onDeleted={() => { setSelectedApp(null); load(); }}
+        />
       )}
     </>
   );

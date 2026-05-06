@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Application, updateApplication } from "@/lib/api";
+import { StatusPill, STATUS_OPTIONS } from "./StatusDropdown";
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
 const BG = "#191919";
@@ -11,26 +12,6 @@ const BORDER = "#2e2e2e";
 const TEXT_PRIMARY = "#ffffff";
 const TEXT_SECONDARY = "#787878";
 
-// ── Status badge colors ────────────────────────────────────────────────────────
-const STATUS_COLORS: Record<string, string> = {
-  applied: "#0a7cff",
-  phone_screen: "#d9a21b",
-  interview: "#7c51bb",
-  offer: "#2e7d32",
-  rejected: "#b71c1c",
-  withdrawn: "#454545",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  applied: "Applied",
-  phone_screen: "Phone Screen",
-  interview: "Interview",
-  offer: "Offer",
-  rejected: "Rejected",
-  withdrawn: "Withdrawn",
-};
-
-const STATUS_OPTIONS = ["applied", "phone_screen", "interview", "offer", "rejected", "withdrawn"] as const;
 
 // ── Company avatar palette ─────────────────────────────────────────────────────
 const AVATAR_PALETTE = ["#0a7cff", "#7c51bb", "#d9a21b", "#2e7d32", "#b71c1c", "#078d7c"];
@@ -58,7 +39,7 @@ type SortKey = "company" | "role" | "location" | "applied_date" | "status" | "fo
 type SortDir = "asc" | "desc";
 
 // ── Editable fields ────────────────────────────────────────────────────────────
-type EditableField = "company" | "role" | "location" | "status" | "notes" | "resume_url" | "cover_letter_url";
+type EditableField = "company" | "role" | "location" | "applied_date" | "status" | "job_url" | "notes" | "follow_up_date" | "resume_url" | "cover_letter_url";
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 interface Props {
@@ -290,8 +271,6 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
           {sorted.map((app) => {
             const initial = (app.company?.[0] ?? "?").toUpperCase();
             const avatarBg = avatarColor(app.company);
-            const statusColor = STATUS_COLORS[app.status] ?? "#454545";
-            const statusLabel = STATUS_LABELS[app.status] ?? app.status;
 
             const isEditing = (field: EditableField) =>
               editCell?.id === app.id && editCell.field === field;
@@ -379,8 +358,25 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                   )}
                 </td>
 
-                {/* 4. Application Date (read-only) */}
-                <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>{fmtDate(app.applied_date)}</td>
+                {/* 4. Application Date (editable) */}
+                <td
+                  style={{ ...tdStyle, color: TEXT_SECONDARY, cursor: "text" }}
+                  onClick={() => { if (!isEditing("applied_date")) startEdit(app.id, "applied_date", app.applied_date ?? ""); }}
+                >
+                  {isEditing("applied_date") ? (
+                    <input
+                      autoFocus
+                      type="date"
+                      style={{ ...inlineInputStyle, colorScheme: "dark" }}
+                      value={editValue}
+                      onChange={(e) => { setEditValue(e.target.value); editValueRef.current = e.target.value; }}
+                      onBlur={() => commitEdit(app.id, "applied_date")}
+                      onKeyDown={(e) => { if (e.key === "Escape") cancelEdit(); if (e.key === "Enter") commitEdit(app.id, "applied_date"); }}
+                    />
+                  ) : (
+                    fmtDate(app.applied_date)
+                  )}
+                </td>
 
                 {/* 5. Application Status */}
                 <td
@@ -397,34 +393,38 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                       onKeyDown={(e) => { if (e.key === "Escape") cancelEdit(); }}
                     >
                       {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                        <option key={s.value} value={s.value}>{s.label}</option>
                       ))}
                     </select>
                   ) : (
-                    <span
-                      style={{
-                        display: "inline-block",
-                        backgroundColor: statusColor,
-                        color: "#fff",
-                        fontSize: "11px",
-                        fontWeight: 500,
-                        padding: "2px 10px",
-                        borderRadius: "9999px",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {statusLabel}
-                    </span>
+                    (() => {
+                      const opt = STATUS_OPTIONS.find((o) => o.value === app.status) ?? STATUS_OPTIONS[1];
+                      return <StatusPill label={opt.label} color={opt.color} outerColor={opt.outerColor} />;
+                    })()
                   )}
                 </td>
 
-                {/* 6. Application Link / Portal (read-only link) */}
-                <td style={tdStyle}>
-                  {app.job_url ? (
+                {/* 6. Application Link / Portal (editable) */}
+                <td
+                  style={{ ...tdStyle, cursor: "text", maxWidth: "160px" }}
+                  onClick={() => { if (!isEditing("job_url")) startEdit(app.id, "job_url", app.job_url ?? ""); }}
+                >
+                  {isEditing("job_url") ? (
+                    <input
+                      autoFocus
+                      style={{ ...inlineInputStyle, minWidth: "140px" }}
+                      value={editValue}
+                      placeholder="https://..."
+                      onChange={(e) => { setEditValue(e.target.value); editValueRef.current = e.target.value; }}
+                      onBlur={() => commitEdit(app.id, "job_url")}
+                      onKeyDown={(e) => { if (e.key === "Escape") cancelEdit(); if (e.key === "Enter") commitEdit(app.id, "job_url"); }}
+                    />
+                  ) : app.job_url ? (
                     <a
                       href={app.job_url}
                       target="_blank"
                       rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       style={{
                         color: "#0a7cff",
                         textDecoration: "none",
@@ -450,8 +450,25 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                 {/* 8. Email / Phone (placeholder) */}
                 <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>—</td>
 
-                {/* 9. Deadline (read-only) */}
-                <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>{fmtDate(app.follow_up_date)}</td>
+                {/* 9. Deadline (editable) */}
+                <td
+                  style={{ ...tdStyle, color: TEXT_SECONDARY, cursor: "text" }}
+                  onClick={() => { if (!isEditing("follow_up_date")) startEdit(app.id, "follow_up_date", app.follow_up_date ?? ""); }}
+                >
+                  {isEditing("follow_up_date") ? (
+                    <input
+                      autoFocus
+                      type="date"
+                      style={{ ...inlineInputStyle, colorScheme: "dark" }}
+                      value={editValue}
+                      onChange={(e) => { setEditValue(e.target.value); editValueRef.current = e.target.value; }}
+                      onBlur={() => commitEdit(app.id, "follow_up_date")}
+                      onKeyDown={(e) => { if (e.key === "Escape") cancelEdit(); if (e.key === "Enter") commitEdit(app.id, "follow_up_date"); }}
+                    />
+                  ) : (
+                    fmtDate(app.follow_up_date)
+                  )}
+                </td>
 
                 {/* 10. Notes (inline-editable) */}
                 <td
