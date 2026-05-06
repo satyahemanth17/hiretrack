@@ -2,22 +2,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Application, createApplication } from "@/lib/api";
-import StatusDropdown, { StatusValue } from "./StatusDropdown";
+import StatusDropdown, { StatusValue, StatusPill, STATUS_OPTIONS } from "./StatusDropdown";
+import EditApplicationModal from "./EditApplicationModal";
 
 interface Props {
   apps: Application[];
   onRefresh?: () => void;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  applied: "#0a7cff",
-  phone_screen: "#d9a21b",
-  interview: "#7c51bb",
-  offer: "#2e7d32",
-  rejected: "#b71c1c",
-  withdrawn: "#454545",
-};
-
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -40,6 +31,7 @@ export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
   }>({ company: "", role: "", location: "", applied_date: today, status: "applied" });
   const [addError, setAddError] = useState("");
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
+  const [editingApp, setEditingApp] = useState<Application | null>(null);
 
   function prevMonth() {
     setCurrentMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
@@ -223,20 +215,22 @@ export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
                   >
                     {parseInt(day.slice(8), 10)}
                   </span>
-                  <div style={{ display: "flex", gap: "3px", flexWrap: "wrap", marginTop: "4px" }}>
-                    {appsOnDay.slice(0, 3).map((app, j) => (
-                      <span
-                        key={j}
-                        title={`${app.company} — ${app.role}`}
-                        style={{
-                          width: "8px",
-                          height: "8px",
-                          borderRadius: "50%",
-                          backgroundColor: STATUS_COLORS[app.status] ?? "#454545",
-                          display: "inline-block",
-                        }}
-                      />
-                    ))}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: "4px" }}>
+                    {appsOnDay.slice(0, 3).map((app, j) => {
+                      const opt = STATUS_OPTIONS.find((o) => o.value === app.status) ?? STATUS_OPTIONS[1];
+                      return (
+                        <div
+                          key={j}
+                          title={`${app.company} — ${app.role}`}
+                          style={{ display: "flex", alignItems: "center", gap: "3px" }}
+                        >
+                          <span style={{ color: opt.color, fontSize: "7px", flexShrink: 0 }}>●</span>
+                          <span style={{ color: "#ffffff", fontSize: "10px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "72px" }}>
+                            {app.company}
+                          </span>
+                        </div>
+                      );
+                    })}
                     {appsOnDay.length > 3 && (
                       <span style={{ fontSize: "10px", color: "#787878" }}>
                         +{appsOnDay.length - 3}
@@ -487,38 +481,45 @@ export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
             {selectedApps.length === 0 ? (
               <p style={{ color: "#787878", fontSize: "13px" }}>No deadlines on this day.</p>
             ) : (
-              selectedApps.map((app) => (
-                <div
-                  key={app.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                    padding: "10px 0",
-                    borderBottom: "1px solid #2e2e2e",
-                  }}
-                >
-                  <span style={{ color: "#ffffff", fontWeight: 500, fontSize: "13px" }}>
-                    {app.company}
-                  </span>
-                  <span style={{ color: "#787878", fontSize: "13px" }}>{app.role}</span>
-                  <span
+              selectedApps.map((app) => {
+                const opt = STATUS_OPTIONS.find((o) => o.value === app.status) ?? STATUS_OPTIONS[1];
+                return (
+                  <div
+                    key={app.id}
+                    onClick={() => { setSelectedDay(null); setEditingApp(app); }}
                     style={{
-                      fontSize: "11px",
-                      backgroundColor: STATUS_COLORS[app.status] ?? "#454545",
-                      color: "#fff",
-                      padding: "2px 8px",
-                      borderRadius: "9999px",
-                      marginLeft: "auto",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "10px 0",
+                      borderBottom: "1px solid #2e2e2e",
+                      cursor: "pointer",
                     }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.backgroundColor = "rgba(255,255,255,0.04)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.backgroundColor = "transparent"; }}
                   >
-                    {app.status.replace("_", " ")}
-                  </span>
-                </div>
-              ))
+                    <span style={{ color: "#ffffff", fontWeight: 500, fontSize: "13px" }}>
+                      {app.company}
+                    </span>
+                    <span style={{ color: "#787878", fontSize: "13px" }}>{app.role}</span>
+                    <span style={{ marginLeft: "auto" }}>
+                      <StatusPill label={opt.label} color={opt.color} outerColor={opt.outerColor} />
+                    </span>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
+      )}
+
+      {editingApp && (
+        <EditApplicationModal
+          app={editingApp}
+          onClose={() => setEditingApp(null)}
+          onSaved={() => { setEditingApp(null); onRefresh?.(); }}
+          onDeleted={() => { setEditingApp(null); onRefresh?.(); }}
+        />
       )}
     </div>
   );
