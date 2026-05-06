@@ -3,12 +3,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { createApplication } from "@/lib/api";
-
-const STATUSES = ["applied", "phone_screen", "interview", "offer", "rejected", "withdrawn"] as const;
-type Status = typeof STATUSES[number];
+import StatusDropdown, { StatusValue } from "./StatusDropdown";
 
 interface Props {
-  initialStatus: Status;
+  initialStatus: StatusValue;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -24,7 +22,7 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
   const [form, setForm] = useState({
     company: "",
     role: "",
-    status: initialStatus,
+    status: initialStatus as StatusValue,
     applied_date: "",
     location: "",
     job_url: "",
@@ -146,17 +144,10 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
 
           <div>
             <label style={labelStyle}>Status</label>
-            <select
+            <StatusDropdown
               value={form.status}
-              onChange={(e) => set("status", e.target.value)}
-              style={inputStyle}
-            >
-              {STATUSES.map((s) => (
-                <option key={s} value={s} style={{ backgroundColor: "#1e1e1e" }}>
-                  {s}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => set("status", v)}
+            />
           </div>
 
           <div>

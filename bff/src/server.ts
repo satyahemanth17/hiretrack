@@ -8,7 +8,6 @@ const PORT = process.env.PORT ?? 4000;
 const FASTAPI_URL = process.env.FASTAPI_URL ?? "http://localhost:8000";
 
 app.use(cors({ origin: "http://localhost:3000" }));
-app.use(express.json());
 
 // Global: 200 req / 15 min
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));

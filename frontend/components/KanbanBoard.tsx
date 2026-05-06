@@ -11,11 +11,11 @@ type Status = typeof STATUSES[number];
 
 const STATUS_LABELS: Record<Status, string> = {
   applied: "Applied",
-  phone_screen: "Phone Screen",
-  interview: "Interview",
-  offer: "Offer",
+  phone_screen: "In Progress",
+  interview: "Interview Scheduled",
+  offer: "Offer Received",
   rejected: "Rejected",
-  withdrawn: "Withdrawn",
+  withdrawn: "Not Applied Yet",
 };
 
 const STATUS_BG_COLORS: Record<Status, string> = {
@@ -162,7 +162,7 @@ function Column({
           padding: "2px 4px",
         }}
       >
-        <span style={{ fontWeight: 700, fontSize: "12px", color: "#ffffff", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        <span style={{ fontWeight: 700, fontSize: "13px", color: "#ffffff" }}>
           {STATUS_LABELS[status]}
         </span>
         <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>
@@ -290,7 +290,7 @@ export default function KanbanBoard() {
         whileHover={{ scale: 1.05, y: -1 }}
         transition={{ duration: 0.15, ease: "easeOut" }}
         className="fixed bottom-8 right-8 w-12 h-12 rounded-full text-white text-2xl flex items-center justify-center shadow-lg"
-        style={{ backgroundColor: "#0a7cff" }}
+        style={{ backgroundColor: "#0a7cff", cursor: "pointer" }}
         title="Add application"
       >
         +
