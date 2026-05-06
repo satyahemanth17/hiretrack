@@ -12,30 +12,30 @@ const STATUSES = ["applied", "phone_screen", "interview", "offer", "rejected", "
 type Status = typeof STATUSES[number];
 
 const STATUS_BG_COLORS: Record<Status, string> = {
-  applied: "#e8eef8",
-  phone_screen: "#f5f0e8",
-  interview: "#ede8f5",
-  offer: "#e8f5ed",
-  rejected: "#f5e8e8",
-  withdrawn: "#f0f0f0",
+  applied: "#111827",
+  phone_screen: "#1a1500",
+  interview: "#130d1f",
+  offer: "#0d1f14",
+  rejected: "#1f0d0d",
+  withdrawn: "#111111",
 };
 
 const CARD_BG_COLORS: Record<Status, string> = {
-  applied: "#1e3a5f",
-  phone_screen: "#3d2e00",
-  interview: "#2d1b4e",
-  offer: "#1a3d2b",
-  rejected: "#3d1a1a",
-  withdrawn: "#1f1f1f",
+  applied: "#2a4f7a",
+  phone_screen: "#5a4200",
+  interview: "#3f2870",
+  offer: "#265c40",
+  rejected: "#5c2828",
+  withdrawn: "#333333",
 };
 
 const CARD_BORDER_COLORS: Record<Status, string> = {
-  applied: "#2a4f7f",
-  phone_screen: "#5c4500",
-  interview: "#42287a",
-  offer: "#265c3e",
-  rejected: "#5c2525",
-  withdrawn: "#2e2e2e",
+  applied: "#3a6090",
+  phone_screen: "#6e5100",
+  interview: "#513490",
+  offer: "#327550",
+  rejected: "#703333",
+  withdrawn: "#444444",
 };
 
 function formatDate(dateStr?: string): string {
