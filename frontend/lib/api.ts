@@ -35,10 +35,14 @@ export interface Application {
   salary_max?: number;
   follow_up_date?: string;
   notes?: string;
+  /** @deprecated legacy field, no longer written by UI */
   resume_used?: string;
+  /** @deprecated legacy field, no longer written by UI */
   cover_letter_used?: boolean;
   resume_file_path?: string;
   cover_letter_file_path?: string;
+  resume_url?: string;
+  cover_letter_url?: string;
 }
 
 export interface FunnelItem { status: string; count: number; }
@@ -46,7 +50,9 @@ export interface TimelineItem { date: string; count: number; }
 export interface MatchResult { score: number; matched: string[]; missing: string[]; }
 
 export const listApplications = () =>
-  apiFetch<Application[]>("/api/applications?limit=100");
+  apiFetch<{ items: Application[]; total: number; skip: number; limit: number }>(
+    "/api/applications?limit=100"
+  ).then((r) => r.items);
 
 export const createApplication = (data: Omit<Application, "id">) =>
   apiFetch<Application>("/api/applications", { method: "POST", body: JSON.stringify(data) });
