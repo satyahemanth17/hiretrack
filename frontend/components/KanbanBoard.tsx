@@ -20,6 +20,24 @@ const STATUS_BG_COLORS: Record<Status, string> = {
   withdrawn: "#f0f0f0",
 };
 
+const CARD_BG_COLORS: Record<Status, string> = {
+  applied: "#1e3a5f",
+  phone_screen: "#3d2e00",
+  interview: "#2d1b4e",
+  offer: "#1a3d2b",
+  rejected: "#3d1a1a",
+  withdrawn: "#1f1f1f",
+};
+
+const CARD_BORDER_COLORS: Record<Status, string> = {
+  applied: "#2a4f7f",
+  phone_screen: "#5c4500",
+  interview: "#42287a",
+  offer: "#265c3e",
+  rejected: "#5c2525",
+  withdrawn: "#2e2e2e",
+};
+
 function formatDate(dateStr?: string): string {
   if (!dateStr) return "—";
   try {
@@ -38,8 +56,15 @@ function Card({ app, onOpenDetail }: { app: Application; onOpenDetail: (a: Appli
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: app.id });
   const dragOccurred = useRef(false);
 
+  const cardBg = CARD_BG_COLORS[app.status as Status] ?? "#1e1e1e";
+  const cardBorder = CARD_BORDER_COLORS[app.status as Status] ?? "#2e2e2e";
+
   const style = transform
-    ? { transform: `translate(${transform.x}px,${transform.y}px)`, opacity: isDragging ? 0.5 : 1 }
+    ? {
+        transform: `translate(${transform.x}px,${transform.y}px) scale(${isDragging ? 1.02 : 1})`,
+        opacity: isDragging ? 0.8 : 1,
+        zIndex: isDragging ? 50 : undefined,
+      }
     : undefined;
 
   return (
@@ -53,22 +78,22 @@ function Card({ app, onOpenDetail }: { app: Application; onOpenDetail: (a: Appli
       onClick={() => { if (!dragOccurred.current) onOpenDetail(app); dragOccurred.current = false; }}
     >
       <motion.div
-        whileHover={{ scale: 1.08 }}
+        whileHover={{ scale: 1.05 }}
         transition={{ duration: 0.15, ease: "easeOut" }}
         style={{
-          backgroundColor: "#ffffff",
-          border: "1px solid rgba(0,0,0,0.08)",
+          backgroundColor: cardBg,
+          border: `1px solid ${cardBorder}`,
           borderRadius: "6px",
-          cursor: "grab",
+          cursor: isDragging ? "grabbing" : "grab",
           padding: "10px 12px",
           marginBottom: "8px",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+          boxShadow: "0 1px 6px rgba(0,0,0,0.3)",
         }}
         className="select-none"
       >
-        <p style={{ color: "#0a0a0a", fontWeight: 600, fontSize: "13px", margin: 0 }}>{app.company}</p>
-        <p style={{ color: "#444444", fontSize: "13px", marginTop: "2px", marginBottom: 0 }}>{app.role}</p>
-        <p style={{ color: "#666666", fontSize: "12px", marginTop: "4px", marginBottom: 0 }}>{formatDate(app.applied_date)}</p>
+        <p style={{ color: "#ffffff", fontWeight: 600, fontSize: "13px", margin: 0 }}>{app.company}</p>
+        <p style={{ color: "#ffffff", fontSize: "13px", marginTop: "2px", marginBottom: 0 }}>{app.role}</p>
+        <p style={{ color: "rgba(255,255,255,0.67)", fontSize: "12px", marginTop: "4px", marginBottom: 0 }}>{formatDate(app.applied_date)}</p>
       </motion.div>
     </div>
   );
@@ -94,11 +119,12 @@ function Column({
       ref={setNodeRef}
       style={{
         minWidth: "220px",
-        backgroundColor: isOver ? "#d8d8d8" : STATUS_BG_COLORS[status],
-        border: "1px solid rgba(0,0,0,0.1)",
+        backgroundColor: STATUS_BG_COLORS[status],
+        border: isOver ? "1px solid rgba(10,124,255,0.5)" : "1px solid rgba(0,0,0,0.1)",
+        boxShadow: isOver ? "0 0 0 2px rgba(10,124,255,0.25)" : "none",
         borderRadius: "8px",
         padding: "12px",
-        transition: "background-color 0.15s",
+        transition: "border 0.15s, box-shadow 0.15s",
       }}
     >
       <div
