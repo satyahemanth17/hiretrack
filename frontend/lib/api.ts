@@ -50,7 +50,9 @@ export interface TimelineItem { date: string; count: number; }
 export interface MatchResult { score: number; matched: string[]; missing: string[]; }
 
 export const listApplications = () =>
-  apiFetch<Application[]>("/api/applications?limit=100");
+  apiFetch<{ items: Application[]; total: number; skip: number; limit: number }>(
+    "/api/applications?limit=100"
+  ).then((r) => r.items);
 
 export const createApplication = (data: Omit<Application, "id">) =>
   apiFetch<Application>("/api/applications", { method: "POST", body: JSON.stringify(data) });

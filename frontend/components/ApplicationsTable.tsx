@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { motion } from "framer-motion";
 import { Application, updateApplication } from "@/lib/api";
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
 const BG = "#191919";
 const SURFACE = "#252525";
 const BORDER = "#2e2e2e";
-const TEXT_PRIMARY = "#ffffffcf";
+const TEXT_PRIMARY = "#ffffff";
 const TEXT_SECONDARY = "#787878";
 
 // ── Status badge colors ────────────────────────────────────────────────────────
@@ -151,6 +152,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [editCell, setEditCell] = useState<{ id: string; field: EditableField } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
+  const [search, setSearch] = useState("");
 
   // Track input value via ref to avoid stale closure on blur
   const editValueRef = useRef<string>("");
@@ -185,11 +187,14 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
     setEditCell(null);
   }
 
-  const sorted = sortApps(apps, sortKey, sortDir);
+  const filtered = search.trim()
+    ? apps.filter((a) => a.company.toLowerCase().includes(search.toLowerCase()))
+    : apps;
+  const sorted = sortApps(filtered, sortKey, sortDir);
 
   return (
     <div style={{ overflowX: "auto", backgroundColor: BG, borderRadius: "6px", border: `1px solid ${BORDER}` }}>
-      {/* Table header bar with "+ New" button */}
+      {/* Table header bar */}
       <div
         style={{
           display: "flex",
@@ -200,8 +205,48 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
           gap: "8px",
         }}
       >
-        <button
+        {/* Search bar */}
+        <div style={{ position: "relative", marginRight: "auto" }}>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search company..."
+            style={{
+              backgroundColor: "#1e1e1e",
+              border: `1px solid ${BORDER}`,
+              borderRadius: "4px",
+              color: TEXT_PRIMARY,
+              fontSize: "13px",
+              padding: "4px 28px 4px 10px",
+              outline: "none",
+              width: "200px",
+            }}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              style={{
+                position: "absolute",
+                right: "6px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                color: TEXT_SECONDARY,
+                cursor: "pointer",
+                fontSize: "14px",
+                lineHeight: 1,
+                padding: 0,
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
+        <motion.button
           onClick={onRefresh}
+          whileHover={{ scale: 1.05, y: -1 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
           style={{
             fontSize: "12px",
             color: TEXT_SECONDARY,
@@ -213,9 +258,11 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
           }}
         >
           ↻ Refresh
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           onClick={onAdd}
+          whileHover={{ scale: 1.05, y: -1 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
           style={{
             fontSize: "13px",
             fontWeight: 600,
@@ -228,7 +275,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
           }}
         >
           + New
-        </button>
+        </motion.button>
       </div>
 
       <table style={{ width: "100%", borderCollapse: "collapse", backgroundColor: BG }}>

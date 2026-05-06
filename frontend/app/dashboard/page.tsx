@@ -62,8 +62,10 @@ export default function DashboardPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#191919', position: 'relative' }}>
       {/* Logout button — top right */}
-      <button
+      <motion.button
         onClick={logout}
+        whileHover={{ scale: 1.05, y: -1 }}
+        transition={{ duration: 0.15, ease: 'easeOut' }}
         style={{
           position: 'absolute',
           top: '16px',
@@ -76,7 +78,7 @@ export default function DashboardPage() {
         }}
       >
         Logout
-      </button>
+      </motion.button>
 
       {/* Page header */}
       <h1
@@ -86,7 +88,7 @@ export default function DashboardPage() {
           gap: '12px',
           fontSize: '2rem',
           fontWeight: 700,
-          color: '#ffffffcf',
+          color: '#ffffff',
           padding: '32px 32px 0 32px',
           margin: 0,
         }}
@@ -108,16 +110,16 @@ export default function DashboardPage() {
           <motion.button
             key={key}
             onClick={() => setTab(key)}
-            whileHover={{ scale: 1.02 }}
-            transition={{ duration: 0.15, type: 'tween' }}
+            whileHover={{ scale: 1.05, y: -1 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
             style={{
               padding: '8px 16px',
               fontSize: '14px',
-              color: tab === key ? '#ffffffcf' : '#787878',
+              color: tab === key ? '#ffffff' : '#787878',
               cursor: 'pointer',
               background: 'none',
               border: 'none',
-              borderBottom: tab === key ? '2px solid #ffffffcf' : '2px solid transparent',
+              borderBottom: tab === key ? '2px solid #ffffff' : '2px solid transparent',
               marginBottom: '-1px',
             }}
           >

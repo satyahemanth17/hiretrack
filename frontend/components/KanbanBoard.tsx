@@ -27,7 +27,6 @@ const STATUS_BG_COLORS: Record<Status, string> = {
   withdrawn: "#2a2a2a",
 };
 
-// Slightly lighter card backgrounds
 const CARD_BG_COLORS: Record<Status, string> = {
   applied: "#264875",
   phone_screen: "#523d00",
@@ -62,14 +61,21 @@ function DetailModal({ app, onClose }: { app: Application; onClose: () => void }
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h2 style={{ color: "#ffffffcf", fontWeight: 700, fontSize: "16px", margin: 0 }}>{app.company}</h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#787878", fontSize: "20px", cursor: "pointer", lineHeight: 1 }}>×</button>
+          <h2 style={{ color: "#ffffff", fontWeight: 700, fontSize: "16px", margin: 0 }}>{app.company}</h2>
+          <motion.button
+            onClick={onClose}
+            whileHover={{ scale: 1.05, y: -1 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            style={{ background: "none", border: "none", color: "#787878", fontSize: "20px", cursor: "pointer", lineHeight: 1 }}
+          >
+            ×
+          </motion.button>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {rows.map(([label, value]) => (
             <div key={label} style={{ display: "flex", gap: "12px" }}>
               <span style={{ color: "#787878", fontSize: "12px", minWidth: "120px", flexShrink: 0, paddingTop: "1px" }}>{label}</span>
-              <span style={{ color: "#ffffffcf", fontSize: "13px", wordBreak: "break-all" }}>{value}</span>
+              <span style={{ color: "#ffffff", fontSize: "13px", wordBreak: "break-all" }}>{value}</span>
             </div>
           ))}
         </div>
@@ -100,8 +106,8 @@ function Card({ app, onOpenDetail }: { app: Application; onOpenDetail: (a: Appli
       onClick={() => { if (!dragOccurred.current) onOpenDetail(app); dragOccurred.current = false; }}
     >
       <motion.div
-        whileHover={{ scale: 1.05 }}
-        transition={{ duration: 0.15, type: "tween" }}
+        whileHover={{ scale: 1.08 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
         style={{
           backgroundColor: cardBg,
           border: "1px solid rgba(255,255,255,0.08)",
@@ -113,8 +119,8 @@ function Card({ app, onOpenDetail }: { app: Application; onOpenDetail: (a: Appli
         className="select-none"
       >
         <p style={{ color: "#ffffff", fontWeight: 600, fontSize: "13px", margin: 0 }}>{app.company}</p>
-        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "13px", marginTop: "2px", marginBottom: 0 }}>{app.role}</p>
-        <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", marginTop: "4px", marginBottom: 0 }}>{app.applied_date}</p>
+        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "13px", marginTop: "2px", marginBottom: 0 }}>{app.role}</p>
+        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", marginTop: "4px", marginBottom: 0 }}>{app.applied_date}</p>
       </motion.div>
     </div>
   );
@@ -146,19 +152,17 @@ function Column({
         transition: "background-color 0.15s",
       }}
     >
-      {/* Rounded box header */}
+      {/* Plain text header — no box */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          backgroundColor: "rgba(255,255,255,0.08)",
-          borderRadius: "6px",
-          padding: "6px 10px",
           marginBottom: "12px",
+          padding: "2px 4px",
         }}
       >
-        <span style={{ fontWeight: 700, fontSize: "12px", color: "#ffffff" }}>
+        <span style={{ fontWeight: 700, fontSize: "12px", color: "#ffffff", textTransform: "uppercase", letterSpacing: "0.05em" }}>
           {STATUS_LABELS[status]}
         </span>
         <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>
@@ -168,8 +172,10 @@ function Column({
 
       {cards.map((c) => <Card key={c.id} app={c} onOpenDetail={onOpenDetail} />)}
 
-      <button
+      <motion.button
         onClick={() => onAdd(status)}
+        whileHover={{ scale: 1.05, y: -1 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
         style={{
           width: "100%",
           fontSize: "12px",
@@ -183,7 +189,7 @@ function Column({
         }}
       >
         + New item
-      </button>
+      </motion.button>
     </div>
   );
 }
@@ -193,6 +199,7 @@ export default function KanbanBoard() {
   const [apps, setApps] = useState<Application[]>([]);
   const [modalStatus, setModalStatus] = useState<Status | null>(null);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+  const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
     const data = await listApplications();
@@ -215,10 +222,55 @@ export default function KanbanBoard() {
     }
   }
 
-  const byStatus = (s: Status) => apps.filter((a) => a.status === s);
+  const filtered = search.trim()
+    ? apps.filter((a) => a.company.toLowerCase().includes(search.toLowerCase()))
+    : apps;
+
+  const byStatus = (s: Status) => filtered.filter((a) => a.status === s);
 
   return (
     <>
+      {/* Search bar */}
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+        <div style={{ position: "relative" }}>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search company..."
+            style={{
+              backgroundColor: "#1e1e1e",
+              border: "1px solid #2e2e2e",
+              borderRadius: "4px",
+              color: "#ffffff",
+              fontSize: "13px",
+              padding: "6px 28px 6px 10px",
+              outline: "none",
+              width: "220px",
+            }}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              style={{
+                position: "absolute",
+                right: "6px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                color: "#787878",
+                cursor: "pointer",
+                fontSize: "14px",
+                lineHeight: 1,
+                padding: 0,
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
+      </div>
+
       <DndContext onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {STATUSES.map((s) => (
@@ -233,14 +285,16 @@ export default function KanbanBoard() {
         </div>
       </DndContext>
 
-      <button
+      <motion.button
         onClick={() => setModalStatus("applied")}
+        whileHover={{ scale: 1.05, y: -1 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
         className="fixed bottom-8 right-8 w-12 h-12 rounded-full text-white text-2xl flex items-center justify-center shadow-lg"
         style={{ backgroundColor: "#0a7cff" }}
         title="Add application"
       >
         +
-      </button>
+      </motion.button>
 
       {modalStatus && (
         <AddJobModal

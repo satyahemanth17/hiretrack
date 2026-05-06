@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { createApplication } from "@/lib/api";
 
 const STATUSES = ["applied", "phone_screen", "interview", "offer", "rejected", "withdrawn"] as const;
@@ -16,7 +17,7 @@ interface Props {
 const MODAL_BG = "#252525";
 const INPUT_BG = "#1e1e1e";
 const BORDER = "#2e2e2e";
-const TEXT_PRIMARY = "#ffffffcf";
+const TEXT_PRIMARY = "#ffffff";
 const TEXT_SECONDARY = "#787878";
 
 export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) {
@@ -42,12 +43,16 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    console.log("[AddJobModal] handleSubmit fired", form);
     if (!form.company || !form.role || !form.applied_date) {
       setError("Company, Role, and Applied Date are required.");
       return;
     }
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    console.log("[AddJobModal] token present:", !!token);
     try {
-      await createApplication({
+      console.log("[AddJobModal] calling createApplication...");
+      const result = await createApplication({
         company: form.company,
         role: form.role,
         status: form.status,
@@ -61,8 +66,10 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
         resume_url: form.resume_url || undefined,
         cover_letter_url: form.cover_letter_url || undefined,
       });
+      console.log("[AddJobModal] createApplication success:", result);
       onSaved();
     } catch (err) {
+      console.error("[AddJobModal] createApplication error:", err);
       setError(err instanceof Error ? err.message : "Failed to save. Please try again.");
     }
   }
@@ -249,21 +256,25 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
           </div>
 
           <div className="flex gap-2 pt-2">
-            <button
+            <motion.button
               type="submit"
               className="flex-1 py-2 rounded font-medium"
+              whileHover={{ scale: 1.05, y: -1 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
               style={{ backgroundColor: "#0a7cff", color: "#fff", borderRadius: "4px", border: "none", cursor: "pointer" }}
             >
               Save
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
               onClick={onClose}
               className="flex-1 py-2 rounded font-medium"
+              whileHover={{ scale: 1.05, y: -1 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
               style={{ border: `1px solid ${BORDER}`, borderRadius: "4px", color: TEXT_SECONDARY, backgroundColor: "transparent", cursor: "pointer" }}
             >
               Cancel
-            </button>
+            </motion.button>
           </div>
         </form>
       </div>
