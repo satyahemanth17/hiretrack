@@ -45,6 +45,8 @@ class Application(Base):
     cover_letter_file_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     resume_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     cover_letter_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    contact_person: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )

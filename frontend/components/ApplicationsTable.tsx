@@ -39,7 +39,7 @@ type SortKey = "company" | "role" | "location" | "applied_date" | "status" | "fo
 type SortDir = "asc" | "desc";
 
 // ── Editable fields ────────────────────────────────────────────────────────────
-type EditableField = "company" | "role" | "location" | "applied_date" | "status" | "job_url" | "notes" | "follow_up_date" | "resume_url" | "cover_letter_url";
+type EditableField = "company" | "role" | "location" | "applied_date" | "status" | "job_url" | "notes" | "follow_up_date" | "resume_url" | "cover_letter_url" | "contact_person" | "contact_email";
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 interface Props {
@@ -444,11 +444,45 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                   )}
                 </td>
 
-                {/* 7. Contact Person (placeholder) */}
-                <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>—</td>
+                {/* 7. Contact Person (editable) */}
+                <td
+                  style={{ ...tdStyle, color: TEXT_SECONDARY, cursor: "text" }}
+                  onClick={() => { if (!isEditing("contact_person")) startEdit(app.id, "contact_person", app.contact_person ?? ""); }}
+                >
+                  {isEditing("contact_person") ? (
+                    <input
+                      autoFocus
+                      style={inlineInputStyle}
+                      value={editValue}
+                      placeholder="Name"
+                      onChange={(e) => { setEditValue(e.target.value); editValueRef.current = e.target.value; }}
+                      onBlur={() => commitEdit(app.id, "contact_person")}
+                      onKeyDown={(e) => { if (e.key === "Escape") cancelEdit(); if (e.key === "Enter") commitEdit(app.id, "contact_person"); }}
+                    />
+                  ) : (
+                    app.contact_person ?? "—"
+                  )}
+                </td>
 
-                {/* 8. Email / Phone (placeholder) */}
-                <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>—</td>
+                {/* 8. Email / Phone (editable) */}
+                <td
+                  style={{ ...tdStyle, color: TEXT_SECONDARY, cursor: "text" }}
+                  onClick={() => { if (!isEditing("contact_email")) startEdit(app.id, "contact_email", app.contact_email ?? ""); }}
+                >
+                  {isEditing("contact_email") ? (
+                    <input
+                      autoFocus
+                      style={inlineInputStyle}
+                      value={editValue}
+                      placeholder="email or phone"
+                      onChange={(e) => { setEditValue(e.target.value); editValueRef.current = e.target.value; }}
+                      onBlur={() => commitEdit(app.id, "contact_email")}
+                      onKeyDown={(e) => { if (e.key === "Escape") cancelEdit(); if (e.key === "Enter") commitEdit(app.id, "contact_email"); }}
+                    />
+                  ) : (
+                    app.contact_email ?? "—"
+                  )}
+                </td>
 
                 {/* 9. Deadline (editable) */}
                 <td

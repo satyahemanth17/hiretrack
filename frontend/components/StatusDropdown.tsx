@@ -25,7 +25,7 @@ export function StatusPill({ label, color, outerColor }: { label: string; color:
         whiteSpace: "nowrap",
       }}
     >
-      <span style={{ color: color, fontSize: "8px", lineHeight: 1, flexShrink: 0 }}>●</span>
+      <span style={{ color: color, fontSize: "14px", lineHeight: 1, flexShrink: 0 }}>●</span>
       <span style={{ color: "#ffffff", fontSize: "12px", fontWeight: 500 }}>{label}</span>
     </span>
   );

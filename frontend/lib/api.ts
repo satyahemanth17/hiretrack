@@ -26,6 +26,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
     const body = await res.text().catch(() => "");
     throw new Error(`API error ${res.status}${body ? `: ${body}` : ""}`);
   }
+  if (res.status === 204) return undefined as unknown as T;
   return res.json() as Promise<T>;
 }
 
@@ -49,6 +50,8 @@ export interface Application {
   cover_letter_file_path?: string;
   resume_url?: string;
   cover_letter_url?: string;
+  contact_person?: string;
+  contact_email?: string;
 }
 
 export interface FunnelItem { status: string; count: number; }
