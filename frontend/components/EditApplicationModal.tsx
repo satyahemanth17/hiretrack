@@ -43,6 +43,8 @@ export default function EditApplicationModal({ app, onClose, onSaved, onDeleted 
     notes: app.notes ?? "",
     resume_url: app.resume_url ?? "",
     cover_letter_url: app.cover_letter_url ?? "",
+    contact_person: app.contact_person ?? "",
+    contact_email: app.contact_email ?? "",
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -71,6 +73,8 @@ export default function EditApplicationModal({ app, onClose, onSaved, onDeleted 
         notes: form.notes || undefined,
         resume_url: form.resume_url || undefined,
         cover_letter_url: form.cover_letter_url || undefined,
+        contact_person: form.contact_person || undefined,
+        contact_email: form.contact_email || undefined,
       });
       onSaved();
     } catch (err) {
@@ -181,6 +185,27 @@ export default function EditApplicationModal({ app, onClose, onSaved, onDeleted 
               rows={3}
               style={{ ...inputStyle, resize: "vertical" } as React.CSSProperties}
             />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+            <div>
+              <label style={labelStyle}>Contact Person</label>
+              <input
+                value={form.contact_person}
+                onChange={(e) => setField("contact_person", e.target.value)}
+                placeholder="Name"
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Email / Phone</label>
+              <input
+                value={form.contact_email}
+                onChange={(e) => setField("contact_email", e.target.value)}
+                placeholder="email or phone"
+                style={inputStyle}
+              />
+            </div>
           </div>
 
           <div>

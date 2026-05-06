@@ -224,8 +224,7 @@ export default function DeadlinesCalendar({ apps, onRefresh }: Props) {
                           title={`${app.company} — ${app.role}`}
                           style={{ display: "flex", alignItems: "center", gap: "3px" }}
                         >
-                          <span style={{ color: opt.color, fontSize: "7px", flexShrink: 0 }}>●</span>
-                          <span style={{ color: "#ffffff", fontSize: "10px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "72px" }}>
+                          <span style={{ color: "#ffffff", fontSize: "10px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "80px" }}>
                             {app.company}
                           </span>
                         </div>

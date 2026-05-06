@@ -24,6 +24,8 @@ class ApplicationCreate(BaseModel):
     cover_letter_file_path: Optional[str] = None
     resume_url: Optional[str] = None
     cover_letter_url: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_email: Optional[str] = None
 
     @field_validator('resume_url', 'cover_letter_url', mode='before')
     @classmethod
@@ -51,6 +53,8 @@ class ApplicationUpdate(BaseModel):
     cover_letter_file_path: Optional[str] = None
     resume_url: Optional[str] = None
     cover_letter_url: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_email: Optional[str] = None
 
     @field_validator('resume_url', 'cover_letter_url', mode='before')
     @classmethod
@@ -80,6 +84,8 @@ class ApplicationResponse(BaseModel):
     cover_letter_file_path: Optional[str]
     resume_url: Optional[str]
     cover_letter_url: Optional[str]
+    contact_person: Optional[str]
+    contact_email: Optional[str]
     created_at: datetime
     updated_at: datetime
 

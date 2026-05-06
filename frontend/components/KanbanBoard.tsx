@@ -12,21 +12,12 @@ const STATUSES = ["applied", "phone_screen", "interview", "offer", "rejected", "
 type Status = typeof STATUSES[number];
 
 const STATUS_BG_COLORS: Record<Status, string> = {
-  applied: "#1e3a5f",
-  phone_screen: "#3d2e00",
-  interview: "#2d1b4e",
-  offer: "#1a3d2b",
-  rejected: "#3d1a1a",
-  withdrawn: "#2a2a2a",
-};
-
-const CARD_BG_COLORS: Record<Status, string> = {
-  applied: "#264875",
-  phone_screen: "#523d00",
-  interview: "#3a2462",
-  offer: "#205038",
-  rejected: "#502020",
-  withdrawn: "#363636",
+  applied: "#e8eef8",
+  phone_screen: "#f5f0e8",
+  interview: "#ede8f5",
+  offer: "#e8f5ed",
+  rejected: "#f5e8e8",
+  withdrawn: "#f0f0f0",
 };
 
 function formatDate(dateStr?: string): string {
@@ -46,8 +37,6 @@ function formatDate(dateStr?: string): string {
 function Card({ app, onOpenDetail }: { app: Application; onOpenDetail: (a: Application) => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: app.id });
   const dragOccurred = useRef(false);
-  const status = (STATUSES.includes(app.status as Status) ? app.status : "withdrawn") as Status;
-  const cardBg = CARD_BG_COLORS[status];
 
   const style = transform
     ? { transform: `translate(${transform.x}px,${transform.y}px)`, opacity: isDragging ? 0.5 : 1 }
@@ -67,18 +56,19 @@ function Card({ app, onOpenDetail }: { app: Application; onOpenDetail: (a: Appli
         whileHover={{ scale: 1.08 }}
         transition={{ duration: 0.15, ease: "easeOut" }}
         style={{
-          backgroundColor: cardBg,
-          border: "1px solid rgba(255,255,255,0.08)",
+          backgroundColor: "#ffffff",
+          border: "1px solid rgba(0,0,0,0.08)",
           borderRadius: "6px",
           cursor: "grab",
           padding: "10px 12px",
           marginBottom: "8px",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
         }}
         className="select-none"
       >
-        <p style={{ color: "#ffffff", fontWeight: 600, fontSize: "13px", margin: 0 }}>{app.company}</p>
-        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "13px", marginTop: "2px", marginBottom: 0 }}>{app.role}</p>
-        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", marginTop: "4px", marginBottom: 0 }}>{formatDate(app.applied_date)}</p>
+        <p style={{ color: "#0a0a0a", fontWeight: 600, fontSize: "13px", margin: 0 }}>{app.company}</p>
+        <p style={{ color: "#444444", fontSize: "13px", marginTop: "2px", marginBottom: 0 }}>{app.role}</p>
+        <p style={{ color: "#666666", fontSize: "12px", marginTop: "4px", marginBottom: 0 }}>{formatDate(app.applied_date)}</p>
       </motion.div>
     </div>
   );
@@ -104,8 +94,8 @@ function Column({
       ref={setNodeRef}
       style={{
         minWidth: "220px",
-        backgroundColor: isOver ? "#333333" : STATUS_BG_COLORS[status],
-        border: "1px solid rgba(255,255,255,0.06)",
+        backgroundColor: isOver ? "#d8d8d8" : STATUS_BG_COLORS[status],
+        border: "1px solid rgba(0,0,0,0.1)",
         borderRadius: "8px",
         padding: "12px",
         transition: "background-color 0.15s",
@@ -121,7 +111,7 @@ function Column({
         }}
       >
         <StatusPill label={opt.label} color={opt.color} outerColor={opt.outerColor} />
-        <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", marginLeft: "8px" }}>
+        <span style={{ fontSize: "11px", color: "rgba(0,0,0,0.4)", marginLeft: "8px" }}>
           {cards.length}
         </span>
       </div>
@@ -138,8 +128,8 @@ function Column({
           marginTop: "4px",
           padding: "5px 0",
           borderRadius: "4px",
-          color: "rgba(255,255,255,0.4)",
-          border: "1px dashed rgba(255,255,255,0.15)",
+          color: "rgba(0,0,0,0.4)",
+          border: "1px dashed rgba(0,0,0,0.2)",
           backgroundColor: "transparent",
           cursor: "pointer",
         }}
