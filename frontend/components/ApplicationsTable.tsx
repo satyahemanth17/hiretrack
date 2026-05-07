@@ -711,7 +711,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                 <td style={{ ...tdStyle, maxWidth: "160px" }}>
                   {app.resume_file_path ? (
                     <a
-                      href={getResumeDownloadUrl(app.id)}
+                      href={getResumeDownloadUrl(app.resume_file_path!)}
                       target="_blank"
                       rel="noreferrer"
                       onClick={(e) => e.stopPropagation()}
@@ -747,7 +747,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                 <td style={{ ...tdStyle, maxWidth: "160px" }}>
                   {app.cover_letter_file_path ? (
                     <a
-                      href={getCoverLetterDownloadUrl(app.id)}
+                      href={getCoverLetterDownloadUrl(app.cover_letter_file_path!)}
                       target="_blank"
                       rel="noreferrer"
                       onClick={(e) => e.stopPropagation()}
