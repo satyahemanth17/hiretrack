@@ -133,6 +133,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
   const [editCell, setEditCell] = useState<{ id: string; field: EditableField } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   const [search, setSearch] = useState("");
+  const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string>("");
@@ -167,6 +168,12 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
 
   function cancelEdit() {
     setEditCell(null);
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    setDeleteError("");
   }
 
   const filtered = search.trim()
@@ -208,12 +215,10 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
         failed.push(app?.company ?? id);
       }
     }
-    setSelectedIds(new Set());
+    exitSelectMode();
     onRefresh();
     if (failed.length > 0) {
       setDeleteError(`Failed to delete: ${failed.join(", ")}`);
-    } else {
-      setDeleteError("");
     }
   }
 
@@ -222,7 +227,6 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
     if (!confirm(`Delete application for ${app.company}? This cannot be undone.`)) return;
     try {
       await deleteApplication(app.id);
-      setSelectedIds((prev) => { const next = new Set(prev); next.delete(app.id); return next; });
       setDeleteError("");
       onRefresh();
     } catch {
@@ -238,6 +242,9 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
     if (isHovered) return SURFACE;
     return "transparent";
   }
+
+  // Column count: 12 data cols + trash col = 13; +1 for checkbox in select mode = 14
+  const colCount = selectMode ? 14 : 13;
 
   return (
     <div style={{ overflowX: "auto", backgroundColor: BG, borderRadius: "6px", border: `1px solid ${BORDER}` }}>
@@ -295,7 +302,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
           <span style={{ fontSize: "12px", color: "#e57373" }}>{deleteError}</span>
         )}
 
-        {selectedIds.size > 0 && (
+        {selectMode && selectedIds.size > 0 && (
           <motion.button
             onClick={handleDeleteSelected}
             whileHover={{ scale: 1.05, y: -1 }}
@@ -314,6 +321,25 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
             Delete ({selectedIds.size})
           </motion.button>
         )}
+
+        {/* Select / Cancel toggle */}
+        <motion.button
+          onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+          whileHover={{ scale: 1.05, y: -1 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+          style={{
+            fontSize: "13px",
+            fontWeight: 600,
+            color: TEXT_PRIMARY,
+            backgroundColor: "transparent",
+            border: `1px solid ${BORDER}`,
+            borderRadius: "4px",
+            padding: "5px 14px",
+            cursor: "pointer",
+          }}
+        >
+          {selectMode ? "Cancel" : "Select"}
+        </motion.button>
 
         <motion.button
           onClick={onAdd}
@@ -337,16 +363,18 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
       <table style={{ width: "100%", borderCollapse: "collapse", backgroundColor: BG }}>
         <thead>
           <tr>
-            {/* Checkbox column */}
-            <th style={{ ...thStyle, cursor: "default", padding: "8px", width: "36px", textAlign: "center" }}>
-              <input
-                type="checkbox"
-                checked={allSelected}
-                ref={(el) => { if (el) el.indeterminate = someSelected; }}
-                onChange={toggleSelectAll}
-                style={{ cursor: "pointer", accentColor: "#0a7cff" }}
-              />
-            </th>
+            {/* Checkbox column — only in select mode */}
+            {selectMode && (
+              <th style={{ ...thStyle, cursor: "default", padding: "8px", width: "36px", textAlign: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                  onChange={toggleSelectAll}
+                  style={{ cursor: "pointer", accentColor: "#000000" }}
+                />
+              </th>
+            )}
             <Th col="company" label="Company Name" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <Th col="role" label="Role / Position" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <Th col="location" label="Location" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
@@ -366,7 +394,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
         <tbody>
           {sorted.length === 0 && (
             <tr>
-              <td colSpan={14} style={{ ...tdStyle, textAlign: "center", color: TEXT_SECONDARY, padding: "32px" }}>
+              <td colSpan={colCount} style={{ ...tdStyle, textAlign: "center", color: TEXT_SECONDARY, padding: "32px" }}>
                 No applications yet.
               </td>
             </tr>
@@ -385,18 +413,20 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                 onMouseEnter={() => setHoveredRowId(app.id)}
                 onMouseLeave={() => setHoveredRowId(null)}
               >
-                {/* Checkbox */}
-                <td
-                  style={{ ...tdStyle, padding: "0 8px", textAlign: "center", width: "36px" }}
-                  onClick={(e) => toggleSelect(app.id, e)}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(app.id)}
-                    onChange={() => {}}
-                    style={{ cursor: "pointer", accentColor: "#0a7cff" }}
-                  />
-                </td>
+                {/* Checkbox — only in select mode */}
+                {selectMode && (
+                  <td
+                    style={{ ...tdStyle, padding: "0 8px", textAlign: "center", width: "36px" }}
+                    onClick={(e) => toggleSelect(app.id, e)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(app.id)}
+                      onChange={() => {}}
+                      style={{ cursor: "pointer", accentColor: "#000000" }}
+                    />
+                  </td>
+                )}
 
                 {/* 1. Company Name */}
                 <td
@@ -754,7 +784,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
             onMouseEnter={() => setHoveredRowId("__new__")}
             onMouseLeave={() => setHoveredRowId(null)}
           >
-            <td colSpan={14} style={{ ...tdStyle, color: TEXT_SECONDARY, fontSize: "12px" }}>
+            <td colSpan={colCount} style={{ ...tdStyle, color: TEXT_SECONDARY, fontSize: "12px" }}>
               + New item
             </td>
           </tr>
