@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { createApplication } from "@/lib/api";
+import { createApplication, uploadResume, uploadCoverLetter } from "@/lib/api";
 import StatusDropdown, { StatusValue } from "./StatusDropdown";
 
 interface Props {
@@ -18,6 +18,13 @@ const BORDER = "#2e2e2e";
 const TEXT_PRIMARY = "#ffffff";
 const TEXT_SECONDARY = "#787878";
 
+function validateFile(file: File): string | null {
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (!["pdf", "docx"].includes(ext ?? "")) return "Only PDF and DOCX files are allowed.";
+  if (file.size > 5 * 1024 * 1024) return "File must be under 5 MB.";
+  return null;
+}
+
 export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) {
   const [form, setForm] = useState({
     company: "",
@@ -30,13 +37,24 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
     salary_max: "",
     follow_up_date: "",
     notes: "",
-    resume_url: "",
-    cover_letter_url: "",
   });
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [coverLetterFile, setCoverLetterFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState("");
   const [error, setError] = useState("");
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+  const coverLetterInputRef = useRef<HTMLInputElement>(null);
 
   function set(field: keyof typeof form, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function handleFileSelect(file: File, field: "resume" | "coverLetter") {
+    const err = validateFile(file);
+    if (err) { setFileError(err); return; }
+    setFileError("");
+    if (field === "resume") setResumeFile(file);
+    else setCoverLetterFile(file);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -61,10 +79,10 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
         salary_max: form.salary_max ? Number(form.salary_max) : undefined,
         follow_up_date: form.follow_up_date || undefined,
         notes: form.notes || undefined,
-        resume_url: form.resume_url || undefined,
-        cover_letter_url: form.cover_letter_url || undefined,
       });
       console.log("[AddJobModal] createApplication success:", result);
+      if (resumeFile) await uploadResume(result.id, resumeFile);
+      if (coverLetterFile) await uploadCoverLetter(result.id, coverLetterFile);
       onSaved();
     } catch (err) {
       console.error("[AddJobModal] createApplication error:", err);
@@ -224,26 +242,70 @@ export default function AddJobModal({ initialStatus, onClose, onSaved }: Props) 
             />
           </div>
 
+          {fileError && (
+            <p className="text-xs" style={{ color: "#DC2626" }}>{fileError}</p>
+          )}
+
           <div>
-            <label style={labelStyle}>Resume URL</label>
+            <label style={labelStyle}>Resume Used</label>
             <input
-              type="url"
-              placeholder="https://..."
-              value={form.resume_url}
-              onChange={(e) => set("resume_url", e.target.value)}
-              style={inputStyle}
+              ref={resumeInputRef}
+              type="file"
+              accept=".pdf,.docx"
+              style={{ display: "none" }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f, "resume"); }}
             />
+            {resumeFile ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "13px", color: "#2e9e50" }}>✓ {resumeFile.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setResumeFile(null)}
+                  style={{ background: "none", border: "none", color: "#787878", cursor: "pointer", fontSize: "16px", lineHeight: 1, padding: 0 }}
+                >×</button>
+              </div>
+            ) : (
+              <motion.button
+                type="button"
+                onClick={() => resumeInputRef.current?.click()}
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                style={{ ...inputStyle, textAlign: "left", cursor: "pointer", color: "#787878" }}
+              >
+                Upload Resume (PDF/DOCX)
+              </motion.button>
+            )}
           </div>
 
           <div>
-            <label style={labelStyle}>Cover Letter URL</label>
+            <label style={labelStyle}>Cover Letter Used</label>
             <input
-              type="url"
-              placeholder="https://..."
-              value={form.cover_letter_url}
-              onChange={(e) => set("cover_letter_url", e.target.value)}
-              style={inputStyle}
+              ref={coverLetterInputRef}
+              type="file"
+              accept=".pdf,.docx"
+              style={{ display: "none" }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f, "coverLetter"); }}
             />
+            {coverLetterFile ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "13px", color: "#2e9e50" }}>✓ {coverLetterFile.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setCoverLetterFile(null)}
+                  style={{ background: "none", border: "none", color: "#787878", cursor: "pointer", fontSize: "16px", lineHeight: 1, padding: 0 }}
+                >×</button>
+              </div>
+            ) : (
+              <motion.button
+                type="button"
+                onClick={() => coverLetterInputRef.current?.click()}
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                style={{ ...inputStyle, textAlign: "left", cursor: "pointer", color: "#787878" }}
+              >
+                Upload Cover Letter (PDF/DOCX)
+              </motion.button>
+            )}
           </div>
 
           <div className="flex gap-2 pt-2">

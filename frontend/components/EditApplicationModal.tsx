@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Application, updateApplication, deleteApplication } from "@/lib/api";
+import { Application, updateApplication, deleteApplication, uploadResume, uploadCoverLetter, getResumeDownloadUrl, getCoverLetterDownloadUrl } from "@/lib/api";
 import StatusDropdown, { StatusValue } from "./StatusDropdown";
 
 interface Props {
@@ -41,14 +41,32 @@ export default function EditApplicationModal({ app, onClose, onSaved, onDeleted 
     job_url: app.job_url ?? "",
     follow_up_date: app.follow_up_date ?? "",
     notes: app.notes ?? "",
-    resume_url: app.resume_url ?? "",
-    cover_letter_url: app.cover_letter_url ?? "",
     contact_person: app.contact_person ?? "",
     contact_email: app.contact_email ?? "",
   });
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [coverLetterFile, setCoverLetterFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState("");
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+  const coverLetterInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  function validateFile(file: File): string | null {
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (!["pdf", "docx"].includes(ext ?? "")) return "Only PDF and DOCX files are allowed.";
+    if (file.size > 5 * 1024 * 1024) return "File must be under 5 MB.";
+    return null;
+  }
+
+  function handleFileSelect(file: File, field: "resume" | "coverLetter") {
+    const err = validateFile(file);
+    if (err) { setFileError(err); return; }
+    setFileError("");
+    if (field === "resume") setResumeFile(file);
+    else setCoverLetterFile(file);
+  }
 
   function setField(field: keyof typeof form, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -71,11 +89,11 @@ export default function EditApplicationModal({ app, onClose, onSaved, onDeleted 
         job_url: form.job_url || undefined,
         follow_up_date: form.follow_up_date || undefined,
         notes: form.notes || undefined,
-        resume_url: form.resume_url || undefined,
-        cover_letter_url: form.cover_letter_url || undefined,
         contact_person: form.contact_person || undefined,
         contact_email: form.contact_email || undefined,
       });
+      if (resumeFile) await uploadResume(app.id, resumeFile);
+      if (coverLetterFile) await uploadCoverLetter(app.id, coverLetterFile);
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save.");
@@ -208,26 +226,72 @@ export default function EditApplicationModal({ app, onClose, onSaved, onDeleted 
             </div>
           </div>
 
+          {fileError && <p style={{ color: "#b71c1c", fontSize: "11px" }}>{fileError}</p>}
+
           <div>
-            <label style={labelStyle}>Resume URL</label>
+            <label style={labelStyle}>Resume Used</label>
             <input
-              type="url"
-              value={form.resume_url}
-              onChange={(e) => setField("resume_url", e.target.value)}
-              placeholder="https://..."
-              style={inputStyle}
+              ref={resumeInputRef}
+              type="file"
+              accept=".pdf,.docx"
+              style={{ display: "none" }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f, "resume"); }}
             />
+            {resumeFile ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "13px", color: "#2e9e50" }}>✓ {resumeFile.name}</span>
+                <button type="button" onClick={() => setResumeFile(null)} style={{ background: "none", border: "none", color: "#787878", cursor: "pointer", fontSize: "16px", lineHeight: 1, padding: 0 }}>×</button>
+              </div>
+            ) : app.resume_file_path ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "13px", color: "#ffffff" }}>📄 {app.resume_filename || app.resume_file_path}</span>
+                <a href={getResumeDownloadUrl(app.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontSize: "12px", color: "#0a7cff", textDecoration: "none" }}>Download</a>
+                <button type="button" onClick={() => resumeInputRef.current?.click()} style={{ fontSize: "12px", color: "#787878", background: "none", border: "1px solid #2e2e2e", borderRadius: "3px", cursor: "pointer", padding: "1px 6px" }}>Replace</button>
+              </div>
+            ) : (
+              <motion.button
+                type="button"
+                onClick={() => resumeInputRef.current?.click()}
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                style={{ ...inputStyle, textAlign: "left", cursor: "pointer", color: "#787878" }}
+              >
+                Upload Resume (PDF/DOCX)
+              </motion.button>
+            )}
           </div>
 
           <div>
-            <label style={labelStyle}>Cover Letter URL</label>
+            <label style={labelStyle}>Cover Letter Used</label>
             <input
-              type="url"
-              value={form.cover_letter_url}
-              onChange={(e) => setField("cover_letter_url", e.target.value)}
-              placeholder="https://..."
-              style={inputStyle}
+              ref={coverLetterInputRef}
+              type="file"
+              accept=".pdf,.docx"
+              style={{ display: "none" }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f, "coverLetter"); }}
             />
+            {coverLetterFile ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "13px", color: "#2e9e50" }}>✓ {coverLetterFile.name}</span>
+                <button type="button" onClick={() => setCoverLetterFile(null)} style={{ background: "none", border: "none", color: "#787878", cursor: "pointer", fontSize: "16px", lineHeight: 1, padding: 0 }}>×</button>
+              </div>
+            ) : app.cover_letter_file_path ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "13px", color: "#ffffff" }}>📄 {app.cover_letter_filename || app.cover_letter_file_path}</span>
+                <a href={getCoverLetterDownloadUrl(app.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontSize: "12px", color: "#0a7cff", textDecoration: "none" }}>Download</a>
+                <button type="button" onClick={() => coverLetterInputRef.current?.click()} style={{ fontSize: "12px", color: "#787878", background: "none", border: "1px solid #2e2e2e", borderRadius: "3px", cursor: "pointer", padding: "1px 6px" }}>Replace</button>
+              </div>
+            ) : (
+              <motion.button
+                type="button"
+                onClick={() => coverLetterInputRef.current?.click()}
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                style={{ ...inputStyle, textAlign: "left", cursor: "pointer", color: "#787878" }}
+              >
+                Upload Cover Letter (PDF/DOCX)
+              </motion.button>
+            )}
           </div>
         </div>
 

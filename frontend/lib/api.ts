@@ -46,7 +46,9 @@ export interface Application {
   resume_used?: string;
   /** @deprecated legacy field, no longer written by UI */
   cover_letter_used?: boolean;
+  resume_filename?: string;
   resume_file_path?: string;
+  cover_letter_filename?: string;
   cover_letter_file_path?: string;
   resume_url?: string;
   cover_letter_url?: string;
@@ -83,6 +85,9 @@ export const analyzeKeywords = (resume: string, job_description: string) =>
     method: "POST",
     body: JSON.stringify({ resume, job_description }),
   });
+
+export const getResumeDownloadUrl = (id: string) => `${BFF_URL}/api/applications/${id}/resume`;
+export const getCoverLetterDownloadUrl = (id: string) => `${BFF_URL}/api/applications/${id}/cover-letter`;
 
 export const uploadResume = (id: string, file: File): Promise<Application> => {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
