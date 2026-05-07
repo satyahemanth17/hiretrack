@@ -38,6 +38,15 @@ const CARD_BORDER_COLORS: Record<Status, string> = {
   withdrawn: "#444444",
 };
 
+const NEW_ITEM_COLORS: Record<Status, string> = {
+  applied: "#1a6fd4",
+  phone_screen: "#d9a21b",
+  interview: "#7c51bb",
+  offer: "#2e9e50",
+  rejected: "#d93b3b",
+  withdrawn: "#909090",
+};
+
 function formatDate(dateStr?: string): string {
   if (!dateStr) return "—";
   try {
@@ -73,7 +82,7 @@ function Card({ app, onOpenDetail }: { app: Application; onOpenDetail: (a: Appli
       style={style}
       {...listeners}
       {...attributes}
-      onPointerDown={() => { dragOccurred.current = false; }}
+      onMouseDown={() => { dragOccurred.current = false; }}
       onPointerMove={() => { dragOccurred.current = true; }}
       onClick={() => { if (!dragOccurred.current) onOpenDetail(app); dragOccurred.current = false; }}
     >
@@ -154,8 +163,8 @@ function Column({
           marginTop: "4px",
           padding: "5px 0",
           borderRadius: "4px",
-          color: "rgba(0,0,0,0.4)",
-          border: "1px dashed rgba(0,0,0,0.2)",
+          color: NEW_ITEM_COLORS[status],
+          border: `1px dashed ${NEW_ITEM_COLORS[status]}55`,
           backgroundColor: "transparent",
           cursor: "pointer",
         }}
