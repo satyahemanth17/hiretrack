@@ -3,6 +3,7 @@ import shutil
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
@@ -15,7 +16,9 @@ from ..schemas import (
     PaginatedApplications,
 )
 
-UPLOAD_DIR = "/app/uploads"
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "/app/uploads")
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
+ALLOWED_EXTENSIONS = {".pdf", ".docx"}
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -131,21 +134,43 @@ async def upload_resume(
     if not app_obj:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
     original_name = os.path.basename(file.filename or "upload")
     _, ext = os.path.splitext(original_name)
-    allowed_ext = {".pdf", ".doc", ".docx", ".txt"}
-    if ext.lower() not in allowed_ext:
-        raise HTTPException(status_code=400, detail=f"File type '{ext}' not allowed. Use PDF, DOC, DOCX, or TXT.")
-    safe_name = f"{app_id}_resume_{uuid.uuid4().hex}{ext}"
-    dest = os.path.join(UPLOAD_DIR, safe_name)
-    with open(dest, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    if ext.lower() not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Only PDF and DOCX files are allowed.")
 
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5 MB.")
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    safe_name = f"{app_id}_resume_{uuid.uuid4().hex}{ext}"
+    with open(os.path.join(UPLOAD_DIR, safe_name), "wb") as f:
+        f.write(contents)
+
+    app_obj.resume_filename = original_name
     app_obj.resume_file_path = safe_name
     db.commit()
     db.refresh(app_obj)
     return app_obj
+
+
+@router.get("/{app_id}/resume")
+def download_resume(
+    app_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    app_obj = db.query(Application).filter(
+        Application.id == app_id,
+        Application.user_id == int(current_user["sub"]),
+    ).first()
+    if not app_obj or not app_obj.resume_file_path:
+        raise HTTPException(status_code=404, detail="No resume uploaded")
+    file_path = os.path.join(UPLOAD_DIR, app_obj.resume_file_path)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path, filename=app_obj.resume_filename or app_obj.resume_file_path)
 
 
 @router.post("/{app_id}/cover-letter", response_model=ApplicationResponse)
@@ -162,18 +187,40 @@ async def upload_cover_letter(
     if not app_obj:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
     original_name = os.path.basename(file.filename or "upload")
     _, ext = os.path.splitext(original_name)
-    allowed_ext = {".pdf", ".doc", ".docx", ".txt"}
-    if ext.lower() not in allowed_ext:
-        raise HTTPException(status_code=400, detail=f"File type '{ext}' not allowed. Use PDF, DOC, DOCX, or TXT.")
-    safe_name = f"{app_id}_coverletter_{uuid.uuid4().hex}{ext}"
-    dest = os.path.join(UPLOAD_DIR, safe_name)
-    with open(dest, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    if ext.lower() not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Only PDF and DOCX files are allowed.")
 
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5 MB.")
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    safe_name = f"{app_id}_coverletter_{uuid.uuid4().hex}{ext}"
+    with open(os.path.join(UPLOAD_DIR, safe_name), "wb") as f:
+        f.write(contents)
+
+    app_obj.cover_letter_filename = original_name
     app_obj.cover_letter_file_path = safe_name
     db.commit()
     db.refresh(app_obj)
     return app_obj
+
+
+@router.get("/{app_id}/cover-letter")
+def download_cover_letter(
+    app_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    app_obj = db.query(Application).filter(
+        Application.id == app_id,
+        Application.user_id == int(current_user["sub"]),
+    ).first()
+    if not app_obj or not app_obj.cover_letter_file_path:
+        raise HTTPException(status_code=404, detail="No cover letter uploaded")
+    file_path = os.path.join(UPLOAD_DIR, app_obj.cover_letter_file_path)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path, filename=app_obj.cover_letter_filename or app_obj.cover_letter_file_path)

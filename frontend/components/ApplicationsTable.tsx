@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Application, updateApplication, deleteApplication } from "@/lib/api";
+import { Application, updateApplication, deleteApplication, uploadResume, uploadCoverLetter, getResumeDownloadUrl, getCoverLetterDownloadUrl } from "@/lib/api";
 import { StatusPill, STATUS_OPTIONS } from "./StatusDropdown";
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
@@ -39,7 +39,7 @@ type SortKey = "company" | "role" | "location" | "applied_date" | "status" | "fo
 type SortDir = "asc" | "desc";
 
 // ── Editable fields ────────────────────────────────────────────────────────────
-type EditableField = "company" | "role" | "location" | "applied_date" | "status" | "job_url" | "notes" | "follow_up_date" | "resume_url" | "cover_letter_url" | "contact_person" | "contact_email";
+type EditableField = "company" | "role" | "location" | "applied_date" | "status" | "job_url" | "notes" | "follow_up_date" | "contact_person" | "contact_email";
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 interface Props {
@@ -139,6 +139,11 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
   const [deleteError, setDeleteError] = useState<string>("");
 
   const editValueRef = useRef<string>("");
+  const resumeUploadRef = useRef<HTMLInputElement>(null);
+  const coverLetterUploadRef = useRef<HTMLInputElement>(null);
+  const uploadingAppIdRef = useRef<string | null>(null);
+  const uploadingFieldRef = useRef<"resume" | "coverLetter" | null>(null);
+  const [uploadError, setUploadError] = useState<string>("");
 
   function handleSort(key: SortKey) {
     if (key === sortKey) {
@@ -234,6 +239,31 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
     }
   }
 
+  function triggerUpload(appId: string, field: "resume" | "coverLetter") {
+    uploadingAppIdRef.current = appId;
+    uploadingFieldRef.current = field;
+    if (field === "resume") resumeUploadRef.current?.click();
+    else coverLetterUploadRef.current?.click();
+  }
+
+  async function handleUploadChange(e: React.ChangeEvent<HTMLInputElement>, field: "resume" | "coverLetter") {
+    const file = e.target.files?.[0];
+    const appId = uploadingAppIdRef.current;
+    e.target.value = "";
+    if (!file || !appId) return;
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (!["pdf", "docx"].includes(ext ?? "")) { setUploadError("Only PDF and DOCX files are allowed."); return; }
+    if (file.size > 5 * 1024 * 1024) { setUploadError("File must be under 5 MB."); return; }
+    setUploadError("");
+    try {
+      if (field === "resume") await uploadResume(appId, file);
+      else await uploadCoverLetter(appId, file);
+      onRefresh();
+    } catch {
+      setUploadError("Upload failed. Please try again.");
+    }
+  }
+
   function rowBg(id: string): string {
     const isSelected = selectedIds.has(id);
     const isHovered = hoveredRowId === id;
@@ -248,6 +278,9 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
 
   return (
     <div style={{ overflowX: "auto", backgroundColor: BG, borderRadius: "6px", border: `1px solid ${BORDER}` }}>
+      {/* Hidden file inputs for resume/cover letter upload */}
+      <input ref={resumeUploadRef} type="file" accept=".pdf,.docx" style={{ display: "none" }} onChange={(e) => handleUploadChange(e, "resume")} />
+      <input ref={coverLetterUploadRef} type="file" accept=".pdf,.docx" style={{ display: "none" }} onChange={(e) => handleUploadChange(e, "coverLetter")} />
       {/* Table header bar */}
       <div
         style={{
@@ -298,8 +331,8 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
           )}
         </div>
 
-        {deleteError && (
-          <span style={{ fontSize: "12px", color: "#e57373" }}>{deleteError}</span>
+        {(deleteError || uploadError) && (
+          <span style={{ fontSize: "12px", color: "#e57373" }}>{deleteError || uploadError}</span>
         )}
 
         {selectMode && selectedIds.size > 0 && (
@@ -385,8 +418,8 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
             <th style={{ ...thStyle, cursor: "default" }}>Email / Phone</th>
             <Th col="follow_up_date" label="Deadline" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <th style={{ ...thStyle, cursor: "default" }}>Notes</th>
-            <th style={{ ...thStyle, cursor: "default" }}>Resume URL</th>
-            <th style={{ ...thStyle, cursor: "default" }}>Cover Letter URL</th>
+            <th style={{ ...thStyle, cursor: "default" }}>Resume Used</th>
+            <th style={{ ...thStyle, cursor: "default" }}>Cover Letter Used</th>
             {/* Trash column */}
             <th style={{ ...thStyle, cursor: "default", width: "36px", padding: "8px" }} />
           </tr>
@@ -674,83 +707,75 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                   )}
                 </td>
 
-                {/* 11. Resume URL */}
-                <td
-                  style={{ ...tdStyle, cursor: "text", maxWidth: "160px" }}
-                  onClick={() => { if (!isEditing("resume_url")) startEdit(app.id, "resume_url", app.resume_url ?? ""); }}
-                >
-                  {isEditing("resume_url") ? (
-                    <input
-                      autoFocus
-                      style={{ ...inlineInputStyle, minWidth: "160px" }}
-                      value={editValue}
-                      placeholder="https://..."
-                      onChange={(e) => { setEditValue(e.target.value); editValueRef.current = e.target.value; }}
-                      onBlur={() => commitEdit(app.id, "resume_url")}
-                      onKeyDown={(e) => { if (e.key === "Escape") cancelEdit(); if (e.key === "Enter") commitEdit(app.id, "resume_url"); }}
-                    />
-                  ) : app.resume_url ? (
+                {/* 11. Resume Used */}
+                <td style={{ ...tdStyle, maxWidth: "160px" }}>
+                  {app.resume_file_path ? (
                     <a
-                      href={app.resume_url}
+                      href={getResumeDownloadUrl(app.id)}
                       target="_blank"
                       rel="noreferrer"
                       onClick={(e) => e.stopPropagation()}
                       style={{
                         color: "#0a7cff",
                         textDecoration: "none",
-                        display: "inline-block",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                         maxWidth: "140px",
                         verticalAlign: "bottom",
+                        fontSize: "13px",
                       }}
-                      title={app.resume_url}
+                      title={app.resume_filename || app.resume_file_path}
                     >
-                      {app.resume_url.replace(/^https?:\/\//, "").split("/").pop() || app.resume_url.replace(/^https?:\/\//, "").split("/")[0]}
+                      📄 {app.resume_filename || app.resume_file_path}
                     </a>
                   ) : (
-                    <span style={{ color: TEXT_SECONDARY }}>—</span>
+                    <span
+                      title="Upload resume"
+                      onClick={(e) => { e.stopPropagation(); triggerUpload(app.id, "resume"); }}
+                      style={{ color: TEXT_SECONDARY, cursor: "pointer", fontSize: "16px", userSelect: "none" }}
+                    >
+                      ↑
+                    </span>
                   )}
                 </td>
 
-                {/* 12. Cover Letter URL */}
-                <td
-                  style={{ ...tdStyle, cursor: "text", maxWidth: "160px" }}
-                  onClick={() => { if (!isEditing("cover_letter_url")) startEdit(app.id, "cover_letter_url", app.cover_letter_url ?? ""); }}
-                >
-                  {isEditing("cover_letter_url") ? (
-                    <input
-                      autoFocus
-                      style={{ ...inlineInputStyle, minWidth: "160px" }}
-                      value={editValue}
-                      placeholder="https://..."
-                      onChange={(e) => { setEditValue(e.target.value); editValueRef.current = e.target.value; }}
-                      onBlur={() => commitEdit(app.id, "cover_letter_url")}
-                      onKeyDown={(e) => { if (e.key === "Escape") cancelEdit(); if (e.key === "Enter") commitEdit(app.id, "cover_letter_url"); }}
-                    />
-                  ) : app.cover_letter_url ? (
+                {/* 12. Cover Letter Used */}
+                <td style={{ ...tdStyle, maxWidth: "160px" }}>
+                  {app.cover_letter_file_path ? (
                     <a
-                      href={app.cover_letter_url}
+                      href={getCoverLetterDownloadUrl(app.id)}
                       target="_blank"
                       rel="noreferrer"
                       onClick={(e) => e.stopPropagation()}
                       style={{
                         color: "#0a7cff",
                         textDecoration: "none",
-                        display: "inline-block",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                         maxWidth: "140px",
                         verticalAlign: "bottom",
+                        fontSize: "13px",
                       }}
-                      title={app.cover_letter_url}
+                      title={app.cover_letter_filename || app.cover_letter_file_path}
                     >
-                      {app.cover_letter_url.replace(/^https?:\/\//, "").split("/").pop() || app.cover_letter_url.replace(/^https?:\/\//, "").split("/")[0]}
+                      📄 {app.cover_letter_filename || app.cover_letter_file_path}
                     </a>
                   ) : (
-                    <span style={{ color: TEXT_SECONDARY }}>—</span>
+                    <span
+                      title="Upload cover letter"
+                      onClick={(e) => { e.stopPropagation(); triggerUpload(app.id, "coverLetter"); }}
+                      style={{ color: TEXT_SECONDARY, cursor: "pointer", fontSize: "16px", userSelect: "none" }}
+                    >
+                      ↑
+                    </span>
                   )}
                 </td>
 
