@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Application, updateApplication } from "@/lib/api";
+import { Application, updateApplication, deleteApplication } from "@/lib/api";
 import { StatusPill, STATUS_OPTIONS } from "./StatusDropdown";
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
@@ -65,7 +65,6 @@ function sortApps(list: Application[], key: SortKey, dir: SortDir): Application[
 }
 
 // ── Shared table styles ────────────────────────────────────────────────────────
-// Full grid: border on all 4 sides of every cell
 const thStyle: React.CSSProperties = {
   color: TEXT_SECONDARY,
   fontSize: "12px",
@@ -134,8 +133,10 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
   const [editCell, setEditCell] = useState<{ id: string; field: EditableField } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string>("");
 
-  // Track input value via ref to avoid stale closure on blur
   const editValueRef = useRef<string>("");
 
   function handleSort(key: SortKey) {
@@ -172,6 +173,71 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
     ? apps.filter((a) => a.company.toLowerCase().includes(search.toLowerCase()))
     : apps;
   const sorted = sortApps(filtered, sortKey, sortDir);
+
+  const allSelected = sorted.length > 0 && selectedIds.size === sorted.length;
+  const someSelected = selectedIds.size > 0 && !allSelected;
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sorted.map((a) => a.id)));
+    }
+  }
+
+  function toggleSelect(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleDeleteSelected() {
+    const ids = [...selectedIds];
+    const count = ids.length;
+    if (!confirm(`Delete ${count} application(s)? This cannot be undone.`)) return;
+    const failed: string[] = [];
+    for (const id of ids) {
+      try {
+        await deleteApplication(id);
+      } catch {
+        const app = apps.find((a) => a.id === id);
+        failed.push(app?.company ?? id);
+      }
+    }
+    setSelectedIds(new Set());
+    onRefresh();
+    if (failed.length > 0) {
+      setDeleteError(`Failed to delete: ${failed.join(", ")}`);
+    } else {
+      setDeleteError("");
+    }
+  }
+
+  async function handleDeleteOne(app: Application, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm(`Delete application for ${app.company}? This cannot be undone.`)) return;
+    try {
+      await deleteApplication(app.id);
+      setSelectedIds((prev) => { const next = new Set(prev); next.delete(app.id); return next; });
+      setDeleteError("");
+      onRefresh();
+    } catch {
+      setDeleteError(`Failed to delete ${app.company}.`);
+    }
+  }
+
+  function rowBg(id: string): string {
+    const isSelected = selectedIds.has(id);
+    const isHovered = hoveredRowId === id;
+    if (isSelected && isHovered) return "#3a1515";
+    if (isSelected) return "#2a1010";
+    if (isHovered) return SURFACE;
+    return "transparent";
+  }
 
   return (
     <div style={{ overflowX: "auto", backgroundColor: BG, borderRadius: "6px", border: `1px solid ${BORDER}` }}>
@@ -224,6 +290,31 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
             </button>
           )}
         </div>
+
+        {deleteError && (
+          <span style={{ fontSize: "12px", color: "#e57373" }}>{deleteError}</span>
+        )}
+
+        {selectedIds.size > 0 && (
+          <motion.button
+            onClick={handleDeleteSelected}
+            whileHover={{ scale: 1.05, y: -1 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            style={{
+              fontSize: "13px",
+              fontWeight: 600,
+              color: "#ffffff",
+              backgroundColor: "#b71c1c",
+              border: "none",
+              borderRadius: "4px",
+              padding: "5px 14px",
+              cursor: "pointer",
+            }}
+          >
+            Delete ({selectedIds.size})
+          </motion.button>
+        )}
+
         <motion.button
           onClick={onAdd}
           whileHover={{ scale: 1.05, y: -1 }}
@@ -246,6 +337,16 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
       <table style={{ width: "100%", borderCollapse: "collapse", backgroundColor: BG }}>
         <thead>
           <tr>
+            {/* Checkbox column */}
+            <th style={{ ...thStyle, cursor: "default", padding: "8px", width: "36px", textAlign: "center" }}>
+              <input
+                type="checkbox"
+                checked={allSelected}
+                ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                onChange={toggleSelectAll}
+                style={{ cursor: "pointer", accentColor: "#0a7cff" }}
+              />
+            </th>
             <Th col="company" label="Company Name" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <Th col="role" label="Role / Position" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <Th col="location" label="Location" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
@@ -258,12 +359,14 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
             <th style={{ ...thStyle, cursor: "default" }}>Notes</th>
             <th style={{ ...thStyle, cursor: "default" }}>Resume URL</th>
             <th style={{ ...thStyle, cursor: "default" }}>Cover Letter URL</th>
+            {/* Trash column */}
+            <th style={{ ...thStyle, cursor: "default", width: "36px", padding: "8px" }} />
           </tr>
         </thead>
         <tbody>
           {sorted.length === 0 && (
             <tr>
-              <td colSpan={12} style={{ ...tdStyle, textAlign: "center", color: TEXT_SECONDARY, padding: "32px" }}>
+              <td colSpan={14} style={{ ...tdStyle, textAlign: "center", color: TEXT_SECONDARY, padding: "32px" }}>
                 No applications yet.
               </td>
             </tr>
@@ -278,10 +381,23 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
             return (
               <tr
                 key={app.id}
-                style={{ height: "40px" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.backgroundColor = SURFACE; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.backgroundColor = "transparent"; }}
+                style={{ height: "40px", backgroundColor: rowBg(app.id) }}
+                onMouseEnter={() => setHoveredRowId(app.id)}
+                onMouseLeave={() => setHoveredRowId(null)}
               >
+                {/* Checkbox */}
+                <td
+                  style={{ ...tdStyle, padding: "0 8px", textAlign: "center", width: "36px" }}
+                  onClick={(e) => toggleSelect(app.id, e)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(app.id)}
+                    onChange={() => {}}
+                    style={{ cursor: "pointer", accentColor: "#0a7cff" }}
+                  />
+                </td>
+
                 {/* 1. Company Name */}
                 <td
                   style={{ ...tdStyle, cursor: "text" }}
@@ -358,7 +474,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                   )}
                 </td>
 
-                {/* 4. Application Date (editable) */}
+                {/* 4. Application Date */}
                 <td
                   style={{ ...tdStyle, color: TEXT_SECONDARY, cursor: "text" }}
                   onClick={() => { if (!isEditing("applied_date")) startEdit(app.id, "applied_date", app.applied_date ?? ""); }}
@@ -404,7 +520,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                   )}
                 </td>
 
-                {/* 6. Application Link / Portal (editable) */}
+                {/* 6. Application Link / Portal */}
                 <td
                   style={{ ...tdStyle, cursor: "text", maxWidth: "160px" }}
                   onClick={() => { if (!isEditing("job_url")) startEdit(app.id, "job_url", app.job_url ?? ""); }}
@@ -444,7 +560,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                   )}
                 </td>
 
-                {/* 7. Contact Person (editable) */}
+                {/* 7. Contact Person */}
                 <td
                   style={{ ...tdStyle, color: TEXT_SECONDARY, cursor: "text" }}
                   onClick={() => { if (!isEditing("contact_person")) startEdit(app.id, "contact_person", app.contact_person ?? ""); }}
@@ -464,7 +580,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                   )}
                 </td>
 
-                {/* 8. Email / Phone (editable) */}
+                {/* 8. Email / Phone */}
                 <td
                   style={{ ...tdStyle, color: TEXT_SECONDARY, cursor: "text" }}
                   onClick={() => { if (!isEditing("contact_email")) startEdit(app.id, "contact_email", app.contact_email ?? ""); }}
@@ -484,7 +600,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                   )}
                 </td>
 
-                {/* 9. Deadline (editable) */}
+                {/* 9. Deadline */}
                 <td
                   style={{ ...tdStyle, color: TEXT_SECONDARY, cursor: "text" }}
                   onClick={() => { if (!isEditing("follow_up_date")) startEdit(app.id, "follow_up_date", app.follow_up_date ?? ""); }}
@@ -504,7 +620,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                   )}
                 </td>
 
-                {/* 10. Notes (inline-editable) */}
+                {/* 10. Notes */}
                 <td
                   style={{ ...tdStyle, cursor: "text", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis" }}
                   onClick={() => { if (!isEditing("notes")) startEdit(app.id, "notes", app.notes ?? ""); }}
@@ -528,7 +644,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                   )}
                 </td>
 
-                {/* 11. Resume URL (editable, shown as link when set) */}
+                {/* 11. Resume URL */}
                 <td
                   style={{ ...tdStyle, cursor: "text", maxWidth: "160px" }}
                   onClick={() => { if (!isEditing("resume_url")) startEdit(app.id, "resume_url", app.resume_url ?? ""); }}
@@ -568,7 +684,7 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                   )}
                 </td>
 
-                {/* 12. Cover Letter URL (editable, shown as link when set) */}
+                {/* 12. Cover Letter URL */}
                 <td
                   style={{ ...tdStyle, cursor: "text", maxWidth: "160px" }}
                   onClick={() => { if (!isEditing("cover_letter_url")) startEdit(app.id, "cover_letter_url", app.cover_letter_url ?? ""); }}
@@ -607,6 +723,26 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
                     <span style={{ color: TEXT_SECONDARY }}>—</span>
                   )}
                 </td>
+
+                {/* Trash icon */}
+                <td
+                  style={{ ...tdStyle, padding: "0 8px", width: "36px", textAlign: "center" }}
+                  onClick={(e) => handleDeleteOne(app, e)}
+                >
+                  {hoveredRowId === app.id && (
+                    <span
+                      title="Delete"
+                      style={{
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        color: "#e57373",
+                        userSelect: "none",
+                      }}
+                    >
+                      🗑
+                    </span>
+                  )}
+                </td>
               </tr>
             );
           })}
@@ -614,11 +750,11 @@ export default function ApplicationsTable({ apps, onRefresh, onAdd }: Props) {
           {/* + New item row */}
           <tr
             onClick={onAdd}
-            style={{ cursor: "pointer", height: "36px" }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = SURFACE; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+            style={{ cursor: "pointer", height: "36px", backgroundColor: hoveredRowId === "__new__" ? SURFACE : "transparent" }}
+            onMouseEnter={() => setHoveredRowId("__new__")}
+            onMouseLeave={() => setHoveredRowId(null)}
           >
-            <td colSpan={12} style={{ ...tdStyle, color: TEXT_SECONDARY, fontSize: "12px" }}>
+            <td colSpan={14} style={{ ...tdStyle, color: TEXT_SECONDARY, fontSize: "12px" }}>
               + New item
             </td>
           </tr>
