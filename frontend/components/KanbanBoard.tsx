@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { DndContext, DragEndEvent, useDroppable, useDraggable } from "@dnd-kit/core";
-import { listApplications, updateApplication, Application } from "@/lib/api";
+import { DndContext, DragEndEvent, DragStartEvent, useDroppable, useDraggable } from "@dnd-kit/core";
+import { updateApplication, deleteApplication, Application } from "@/lib/api";
 import AddJobModal from "./AddJobModal";
 import EditApplicationModal from "./EditApplicationModal";
 import { StatusPill, STATUS_OPTIONS } from "./StatusDropdown";
@@ -61,9 +61,16 @@ function formatDate(dateStr?: string): string {
 }
 
 // ── Card ───────────────────────────────────────────────────────────────────────
-function Card({ app, onOpenDetail }: { app: Application; onOpenDetail: (a: Application) => void }) {
+function Card({
+  app,
+  onOpenDetail,
+  dragHappenedRef,
+}: {
+  app: Application;
+  onOpenDetail: (a: Application) => void;
+  dragHappenedRef: React.MutableRefObject<boolean>;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: app.id });
-  const dragOccurred = useRef(false);
 
   const cardBg = CARD_BG_COLORS[app.status as Status] ?? "#1e1e1e";
   const cardBorder = CARD_BORDER_COLORS[app.status as Status] ?? "#2e2e2e";
@@ -82,9 +89,13 @@ function Card({ app, onOpenDetail }: { app: Application; onOpenDetail: (a: Appli
       style={style}
       {...listeners}
       {...attributes}
-      onMouseDown={() => { dragOccurred.current = false; }}
-      onPointerMove={() => { dragOccurred.current = true; }}
-      onClick={() => { if (!dragOccurred.current) onOpenDetail(app); dragOccurred.current = false; }}
+      onClick={() => {
+        if (dragHappenedRef.current) {
+          dragHappenedRef.current = false;
+          return;
+        }
+        onOpenDetail(app);
+      }}
     >
       <motion.div
         whileHover={{ scale: 1.05 }}
@@ -114,11 +125,13 @@ function Column({
   cards,
   onAdd,
   onOpenDetail,
+  dragHappenedRef,
 }: {
   status: Status;
   cards: Application[];
   onAdd: (s: Status) => void;
   onOpenDetail: (a: Application) => void;
+  dragHappenedRef: React.MutableRefObject<boolean>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const opt = STATUS_OPTIONS.find((o) => o.value === status) ?? STATUS_OPTIONS[1];
@@ -151,7 +164,9 @@ function Column({
         </span>
       </div>
 
-      {cards.map((c) => <Card key={c.id} app={c} onOpenDetail={onOpenDetail} />)}
+      {cards.map((c) => (
+        <Card key={c.id} app={c} onOpenDetail={onOpenDetail} dragHappenedRef={dragHappenedRef} />
+      ))}
 
       <motion.button
         onClick={() => onAdd(status)}
@@ -175,19 +190,23 @@ function Column({
   );
 }
 
+// ── Props ──────────────────────────────────────────────────────────────────────
+interface Props {
+  apps: Application[];
+  setApps: React.Dispatch<React.SetStateAction<Application[]>>;
+  onRefresh: () => void;
+}
+
 // ── KanbanBoard ────────────────────────────────────────────────────────────────
-export default function KanbanBoard() {
-  const [apps, setApps] = useState<Application[]>([]);
+export default function KanbanBoard({ apps, setApps, onRefresh }: Props) {
   const [modalStatus, setModalStatus] = useState<Status | null>(null);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [search, setSearch] = useState("");
+  const dragHappenedRef = useRef(false);
 
-  const load = useCallback(async () => {
-    const data = await listApplications();
-    setApps(Array.isArray(data) ? data : []);
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  function handleDragStart(_event: DragStartEvent) {
+    dragHappenedRef.current = true;
+  }
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -252,7 +271,7 @@ export default function KanbanBoard() {
         </div>
       </div>
 
-      <DndContext onDragEnd={handleDragEnd}>
+      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {STATUSES.map((s) => (
             <Column
@@ -261,6 +280,7 @@ export default function KanbanBoard() {
               cards={byStatus(s)}
               onAdd={(st) => setModalStatus(st)}
               onOpenDetail={setSelectedApp}
+              dragHappenedRef={dragHappenedRef}
             />
           ))}
         </div>
@@ -281,7 +301,7 @@ export default function KanbanBoard() {
         <AddJobModal
           initialStatus={modalStatus}
           onClose={() => setModalStatus(null)}
-          onSaved={() => { setModalStatus(null); load(); }}
+          onSaved={() => { setModalStatus(null); onRefresh(); }}
         />
       )}
 
@@ -289,8 +309,8 @@ export default function KanbanBoard() {
         <EditApplicationModal
           app={selectedApp}
           onClose={() => setSelectedApp(null)}
-          onSaved={() => { setSelectedApp(null); load(); }}
-          onDeleted={() => { setSelectedApp(null); load(); }}
+          onSaved={() => { setSelectedApp(null); onRefresh(); }}
+          onDeleted={() => { setSelectedApp(null); onRefresh(); }}
         />
       )}
     </>

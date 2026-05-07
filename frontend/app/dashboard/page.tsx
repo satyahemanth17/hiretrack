@@ -137,7 +137,7 @@ export default function DashboardPage() {
 
       {/* Content area */}
       <div style={{ padding: '24px 32px' }}>
-        {tab === 'board' && <KanbanBoard />}
+        {tab === 'board' && <KanbanBoard apps={apps} setApps={setApps} onRefresh={load} />}
         {tab === 'table' && <ApplicationsTable apps={apps} onRefresh={load} onAdd={() => setShowAdd(true)} />}
         {tab === 'calendar' && <DeadlinesCalendar apps={apps} onRefresh={load} />}
         {tab === 'analytics' && <AnalyticsChart />}
