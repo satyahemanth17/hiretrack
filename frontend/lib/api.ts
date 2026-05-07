@@ -1,4 +1,5 @@
 const BFF_URL = process.env.NEXT_PUBLIC_BFF_URL ?? "http://localhost:4000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -86,8 +87,8 @@ export const analyzeKeywords = (resume: string, job_description: string) =>
     body: JSON.stringify({ resume, job_description }),
   });
 
-export const getResumeDownloadUrl = (id: string) => `${BFF_URL}/api/applications/${id}/resume`;
-export const getCoverLetterDownloadUrl = (id: string) => `${BFF_URL}/api/applications/${id}/cover-letter`;
+export const getResumeDownloadUrl = (filename: string) => `${BACKEND_URL}/uploads/${filename}`;
+export const getCoverLetterDownloadUrl = (filename: string) => `${BACKEND_URL}/uploads/${filename}`;
 
 export const uploadResume = (id: string, file: File): Promise<Application> => {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;

@@ -245,7 +245,7 @@ export default function EditApplicationModal({ app, onClose, onSaved, onDeleted 
             ) : app.resume_file_path ? (
               <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "13px", color: "#ffffff" }}>📄 {app.resume_filename || app.resume_file_path}</span>
-                <a href={getResumeDownloadUrl(app.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontSize: "12px", color: "#0a7cff", textDecoration: "none" }}>Download</a>
+                <a href={getResumeDownloadUrl(app.resume_file_path!)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontSize: "12px", color: "#0a7cff", textDecoration: "none" }}>Download</a>
                 <button type="button" onClick={() => resumeInputRef.current?.click()} style={{ fontSize: "12px", color: "#787878", background: "none", border: "1px solid #2e2e2e", borderRadius: "3px", cursor: "pointer", padding: "1px 6px" }}>Replace</button>
               </div>
             ) : (
@@ -278,7 +278,7 @@ export default function EditApplicationModal({ app, onClose, onSaved, onDeleted 
             ) : app.cover_letter_file_path ? (
               <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "13px", color: "#ffffff" }}>📄 {app.cover_letter_filename || app.cover_letter_file_path}</span>
-                <a href={getCoverLetterDownloadUrl(app.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontSize: "12px", color: "#0a7cff", textDecoration: "none" }}>Download</a>
+                <a href={getCoverLetterDownloadUrl(app.cover_letter_file_path!)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontSize: "12px", color: "#0a7cff", textDecoration: "none" }}>Download</a>
                 <button type="button" onClick={() => coverLetterInputRef.current?.click()} style={{ fontSize: "12px", color: "#787878", background: "none", border: "1px solid #2e2e2e", borderRadius: "3px", cursor: "pointer", padding: "1px 6px" }}>Replace</button>
               </div>
             ) : (

@@ -1,9 +1,7 @@
 import os
-import shutil
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
@@ -155,23 +153,6 @@ async def upload_resume(
     return app_obj
 
 
-@router.get("/{app_id}/resume")
-def download_resume(
-    app_id: str,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    app_obj = db.query(Application).filter(
-        Application.id == app_id,
-        Application.user_id == int(current_user["sub"]),
-    ).first()
-    if not app_obj or not app_obj.resume_file_path:
-        raise HTTPException(status_code=404, detail="No resume uploaded")
-    file_path = os.path.join(UPLOAD_DIR, app_obj.resume_file_path)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(file_path, filename=app_obj.resume_filename or app_obj.resume_file_path)
-
 
 @router.post("/{app_id}/cover-letter", response_model=ApplicationResponse)
 async def upload_cover_letter(
@@ -208,19 +189,3 @@ async def upload_cover_letter(
     return app_obj
 
 
-@router.get("/{app_id}/cover-letter")
-def download_cover_letter(
-    app_id: str,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    app_obj = db.query(Application).filter(
-        Application.id == app_id,
-        Application.user_id == int(current_user["sub"]),
-    ).first()
-    if not app_obj or not app_obj.cover_letter_file_path:
-        raise HTTPException(status_code=404, detail="No cover letter uploaded")
-    file_path = os.path.join(UPLOAD_DIR, app_obj.cover_letter_file_path)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(file_path, filename=app_obj.cover_letter_filename or app_obj.cover_letter_file_path)
