@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { DndContext, DragEndEvent, DragStartEvent, useDroppable, useDraggable } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, useDroppable, useDraggable } from "@dnd-kit/core";
 import { updateApplication, deleteApplication, Application } from "@/lib/api";
 import AddJobModal from "./AddJobModal";
 import EditApplicationModal from "./EditApplicationModal";
@@ -64,13 +64,13 @@ function formatDate(dateStr?: string): string {
 function Card({
   app,
   onOpenDetail,
-  dragHappenedRef,
 }: {
   app: Application;
   onOpenDetail: (a: Application) => void;
-  dragHappenedRef: React.MutableRefObject<boolean>;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: app.id });
+  const pointerStart = useRef({ x: 0, y: 0 });
+  const pointerMoved = useRef(false);
 
   const cardBg = CARD_BG_COLORS[app.status as Status] ?? "#1e1e1e";
   const cardBorder = CARD_BORDER_COLORS[app.status as Status] ?? "#2e2e2e";
@@ -89,15 +89,24 @@ function Card({
       style={style}
       {...listeners}
       {...attributes}
-      onClick={() => {
-        if (dragHappenedRef.current) {
-          dragHappenedRef.current = false;
-          return;
-        }
-        onOpenDetail(app);
-      }}
     >
       <motion.div
+        onPointerDown={(e) => {
+          pointerStart.current = { x: e.clientX, y: e.clientY };
+          pointerMoved.current = false;
+        }}
+        onPointerMove={(e) => {
+          const dx = e.clientX - pointerStart.current.x;
+          const dy = e.clientY - pointerStart.current.y;
+          if (Math.sqrt(dx * dx + dy * dy) > 5) {
+            pointerMoved.current = true;
+          }
+        }}
+        onPointerUp={() => {
+          if (!pointerMoved.current) {
+            onOpenDetail(app);
+          }
+        }}
         whileHover={{ scale: 1.05 }}
         transition={{ duration: 0.15, ease: "easeOut" }}
         style={{
@@ -125,13 +134,11 @@ function Column({
   cards,
   onAdd,
   onOpenDetail,
-  dragHappenedRef,
 }: {
   status: Status;
   cards: Application[];
   onAdd: (s: Status) => void;
   onOpenDetail: (a: Application) => void;
-  dragHappenedRef: React.MutableRefObject<boolean>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const opt = STATUS_OPTIONS.find((o) => o.value === status) ?? STATUS_OPTIONS[1];
@@ -165,7 +172,7 @@ function Column({
       </div>
 
       {cards.map((c) => (
-        <Card key={c.id} app={c} onOpenDetail={onOpenDetail} dragHappenedRef={dragHappenedRef} />
+        <Card key={c.id} app={c} onOpenDetail={onOpenDetail} />
       ))}
 
       <motion.button
@@ -202,11 +209,6 @@ export default function KanbanBoard({ apps, setApps, onRefresh }: Props) {
   const [modalStatus, setModalStatus] = useState<Status | null>(null);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [search, setSearch] = useState("");
-  const dragHappenedRef = useRef(false);
-
-  function handleDragStart(_event: DragStartEvent) {
-    dragHappenedRef.current = true;
-  }
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -271,7 +273,7 @@ export default function KanbanBoard({ apps, setApps, onRefresh }: Props) {
         </div>
       </div>
 
-      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DndContext onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {STATUSES.map((s) => (
             <Column
@@ -280,7 +282,6 @@ export default function KanbanBoard({ apps, setApps, onRefresh }: Props) {
               cards={byStatus(s)}
               onAdd={(st) => setModalStatus(st)}
               onOpenDetail={setSelectedApp}
-              dragHappenedRef={dragHappenedRef}
             />
           ))}
         </div>
